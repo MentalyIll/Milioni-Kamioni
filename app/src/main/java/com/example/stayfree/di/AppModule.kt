@@ -1,6 +1,5 @@
 package com.example.stayfree.di
 
-import android.app.AlarmManager
 import android.app.NotificationManager
 import android.app.usage.UsageStatsManager
 import android.content.Context
@@ -19,11 +18,6 @@ object AppModule {
     @Singleton
     fun provideUsageStatsManager(@ApplicationContext context: Context): UsageStatsManager =
         context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-
-    @Provides
-    @Singleton
-    fun provideAlarmManager(@ApplicationContext context: Context): AlarmManager =
-        context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
     @Provides
     @Singleton

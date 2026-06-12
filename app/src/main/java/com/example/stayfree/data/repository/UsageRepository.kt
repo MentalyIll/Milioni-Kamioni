@@ -13,5 +13,4 @@ interface UsageRepository {
     suspend fun syncFromUsageStats(date: String, resetTimeMinutes: Int)
     suspend fun incrementUnlock(packageName: String, date: String)
     suspend fun incrementScreenOn(date: String)
-    suspend fun updateAccumulatedTime(packageName: String, date: String, additionalMs: Long)
 }

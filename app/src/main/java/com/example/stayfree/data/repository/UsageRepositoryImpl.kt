@@ -84,21 +84,6 @@ class UsageRepositoryImpl @Inject constructor(
         dao.incrementScreenOnCount(date)
     }
 
-    override suspend fun updateAccumulatedTime(packageName: String, date: String, additionalMs: Long) {
-        val existing = dao.getUsageForPackageAndDate(packageName, date)
-        if (existing != null) {
-            dao.updateTotalTime(packageName, date, existing.totalTimeMs + additionalMs)
-        } else {
-            val appName = AppInfoUtils.getAppName(context, packageName)
-            dao.upsert(AppUsageEntity(
-                packageName = packageName,
-                appName = appName,
-                date = date,
-                totalTimeMs = additionalMs
-            ))
-        }
-    }
-
     private fun AppUsageEntity.toDomain() = AppUsage(
         packageName = packageName,
         appName = appName,

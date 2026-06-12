@@ -1,8 +1,7 @@
 package com.example.stayfree.util
 
 import android.content.Context
-import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
+import android.content.Intent
 import android.graphics.drawable.Drawable
 
 object AppInfoUtils {
@@ -13,18 +12,26 @@ object AppInfoUtils {
         val icon: Drawable?
     )
 
+    /**
+     * Lists launchable apps via the MAIN/LAUNCHER intent, matching the
+     * <queries> declaration in the manifest. Works on API 30+ package
+     * visibility filtering without QUERY_ALL_PACKAGES.
+     */
     fun getInstalledApps(context: Context): List<InstalledApp> {
         val pm = context.packageManager
-        return pm.getInstalledApplications(PackageManager.GET_META_DATA)
-            .filter { it.flags and ApplicationInfo.FLAG_SYSTEM == 0 }
+        val launcherIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+        return pm.queryIntentActivities(launcherIntent, 0)
+            .map { it.activityInfo }
+            .filter { it.packageName != context.packageName }
+            .distinctBy { it.packageName }
             .map { info ->
                 InstalledApp(
                     packageName = info.packageName,
-                    appName = pm.getApplicationLabel(info).toString(),
+                    appName = info.applicationInfo.loadLabel(pm).toString(),
                     icon = try { pm.getApplicationIcon(info.packageName) } catch (e: Exception) { null }
                 )
             }
-            .sortedBy { it.appName }
+            .sortedBy { it.appName.lowercase() }
     }
 
     fun getAppName(context: Context, packageName: String): String {

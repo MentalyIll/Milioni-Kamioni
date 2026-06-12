@@ -3,18 +3,32 @@ package com.example.stayfree
 import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
+import com.example.stayfree.data.local.preferences.AppPreferences
+import com.example.stayfree.service.TrackingScheduler
 import com.example.stayfree.util.NotificationUtils
 import dagger.hilt.android.HiltAndroidApp
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltAndroidApp
 class StayFreeApp : Application(), Configuration.Provider {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
+    @Inject lateinit var prefs: AppPreferences
+
+    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     override fun onCreate() {
         super.onCreate()
         NotificationUtils.createChannels(this)
+        applicationScope.launch {
+            val resetTime = prefs.dailyResetTimeMinutes.first()
+            TrackingScheduler.ensureWorkScheduled(this@StayFreeApp, resetTime)
+        }
     }
 
     override val workManagerConfiguration: Configuration

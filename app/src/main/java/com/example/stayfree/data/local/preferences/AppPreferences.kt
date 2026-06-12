@@ -26,6 +26,9 @@ class AppPreferences @Inject constructor(
         val USER_ID = stringPreferencesKey("user_id")
         val ONBOARDING_COMPLETE = booleanPreferencesKey("onboarding_complete")
         val DASHBOARD_CARD_ORDER = stringPreferencesKey("dashboard_card_order")
+        val FOCUS_ACTIVE = booleanPreferencesKey("focus_active")
+        val FOCUS_END_TIME = longPreferencesKey("focus_end_time")
+        val FOCUS_IS_WHITELIST = booleanPreferencesKey("focus_is_whitelist")
     }
 
     val dailyResetTimeMinutes: Flow<Int> = dataStore.data.map { it[DAILY_RESET_TIME_MINUTES] ?: 0 }
@@ -35,6 +38,9 @@ class AppPreferences @Inject constructor(
     val userId: Flow<String?> = dataStore.data.map { it[USER_ID] }
     val onboardingComplete: Flow<Boolean> = dataStore.data.map { it[ONBOARDING_COMPLETE] ?: false }
     val dashboardCardOrder: Flow<String?> = dataStore.data.map { it[DASHBOARD_CARD_ORDER] }
+    val focusActive: Flow<Boolean> = dataStore.data.map { it[FOCUS_ACTIVE] ?: false }
+    val focusEndTime: Flow<Long> = dataStore.data.map { it[FOCUS_END_TIME] ?: 0L }
+    val focusIsWhitelist: Flow<Boolean> = dataStore.data.map { it[FOCUS_IS_WHITELIST] ?: true }
 
     suspend fun setDailyResetTime(minutes: Int) {
         dataStore.edit { it[DAILY_RESET_TIME_MINUTES] = minutes }
@@ -66,5 +72,13 @@ class AppPreferences @Inject constructor(
 
     suspend fun setDashboardCardOrder(order: String) {
         dataStore.edit { it[DASHBOARD_CARD_ORDER] = order }
+    }
+
+    suspend fun setFocusState(active: Boolean, endTime: Long, isWhitelist: Boolean) {
+        dataStore.edit {
+            it[FOCUS_ACTIVE] = active
+            it[FOCUS_END_TIME] = endTime
+            it[FOCUS_IS_WHITELIST] = isWhitelist
+        }
     }
 }

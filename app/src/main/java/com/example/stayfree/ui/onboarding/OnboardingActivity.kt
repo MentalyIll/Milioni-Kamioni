@@ -9,9 +9,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.stayfree.data.local.preferences.AppPreferences
 import com.example.stayfree.databinding.ActivityOnboardingBinding
+import com.example.stayfree.service.TrackingScheduler
 import com.example.stayfree.ui.MainActivity
 import com.example.stayfree.util.PermissionUtils
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -93,6 +95,9 @@ class OnboardingActivity : AppCompatActivity() {
         if (currentStep >= steps.size) {
             lifecycleScope.launch {
                 prefs.setOnboardingComplete(true)
+                val resetTime = prefs.dailyResetTimeMinutes.first()
+                TrackingScheduler.ensureWorkScheduled(this@OnboardingActivity, resetTime)
+                TrackingScheduler.ensureStarted(this@OnboardingActivity)
                 startActivity(Intent(this@OnboardingActivity, MainActivity::class.java))
                 finish()
             }

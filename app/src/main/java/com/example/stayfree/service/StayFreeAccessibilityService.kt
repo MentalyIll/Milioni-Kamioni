@@ -2,6 +2,8 @@ package com.example.stayfree.service
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.example.stayfree.data.local.preferences.AppPreferences
@@ -9,6 +11,7 @@ import com.example.stayfree.data.repository.BlockingRepository
 import com.example.stayfree.data.repository.InAppBlockRepository
 import com.example.stayfree.data.repository.UsageRepository
 import com.example.stayfree.data.repository.WebsiteBlockRepository
+import com.example.stayfree.domain.BlockRuleEvaluator
 import com.example.stayfree.domain.model.BlockType
 import com.example.stayfree.ui.blocking.FocusModeState
 import com.example.stayfree.ui.overlay.BlockOverlayActivity
@@ -30,30 +33,30 @@ class StayFreeAccessibilityService : AccessibilityService() {
 
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    // In-memory cache of blocked packages — refreshed every 30s
-    private val blockedPackagesCache = mutableSetOf<String>()
-    // In-memory usage accumulation — more accurate than UsageStatsManager alone
+    // In-memory cache of packages with active rules (incl. sleep sentinel) — refreshed every 30s
+    @Volatile private var blockedPackagesCache = emptySet<String>()
+    // Packages never blocked by global modes (focus/sleep): self, launcher, systemui, dialer, settings
+    @Volatile private var exemptPackages = emptySet<String>()
+    // Current continuous foreground session (for SESSION rules and DAILY_LIMIT delta)
     private var currentForegroundPackage: String? = null
     private var foregroundSince: Long = 0L
-    private val usageAccumulator = mutableMapOf<String, Long>()
-    // Debounce per package (last blocked timestamp)
-    private val lastBlockedTime = mutableMapOf<String, Long>()
+    // Debounce for TYPE_WINDOW_CONTENT_CHANGED floods (state changes always evaluate)
+    private val lastContentCheckTime = mutableMapOf<String, Long>()
     // Per-package last check for in-app blocks (debounce)
     private val lastInAppCheckTime = mutableMapOf<String, Long>()
     // Website time tracking
     private var currentBrowserDomain: String? = null
     private var domainStartTime: Long = 0L
     private var urlDebounceJob: Job? = null
-    // Focus mode state (loaded from DataStore)
-    private var focusModeActive = false
-    private var focusModeEndTime = 0L
-    private var focusModeWhitelist = emptySet<String>()
-    private var focusModeIsWhitelist = true // true=whitelist, false=blacklist
+    // Focus mode state (seeded from DataStore, updated via FocusModeState)
+    @Volatile private var focusModeActive = false
+    @Volatile private var focusModeEndTime = 0L
+    @Volatile private var focusModeWhitelist = emptySet<String>()
+    @Volatile private var focusModeIsWhitelist = true // true=whitelist, false=blacklist
 
     companion object {
-        private const val BLOCK_DEBOUNCE_MS = 500L
+        private const val CONTENT_DEBOUNCE_MS = 500L
         private const val CACHE_REFRESH_INTERVAL_MS = 30_000L
-        private const val USAGE_PERSIST_INTERVAL_MS = 60_000L
         private const val INAPP_CHECK_DEBOUNCE_MS = 500L
         private const val URL_DEBOUNCE_MS = 500L
 
@@ -66,12 +69,19 @@ class StayFreeAccessibilityService : AccessibilityService() {
             "com.brave.browser" to "com.brave.browser:id/url_bar",
             "com.opera.browser" to "com.opera.browser:id/url_field"
         )
+
+        private val STATIC_EXEMPT = setOf(
+            "com.android.systemui",
+            "com.android.settings",
+            "com.android.incallui",
+            "com.android.server.telecom"
+        )
     }
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        exemptPackages = computeExemptPackages()
         startCacheRefresh()
-        startUsagePersist()
         collectFocusModeState()
     }
 
@@ -82,110 +92,92 @@ class StayFreeAccessibilityService : AccessibilityService() {
         val eventType = event.eventType
         val now = System.currentTimeMillis()
 
-        // Track foreground time accumulation
         if (eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            trackForegroundTime(pkg, now)
+            // New foreground window — reset session tracking on app switch
+            if (currentForegroundPackage != pkg) {
+                currentForegroundPackage = pkg
+                foregroundSince = now
+            }
+        } else if (eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            val last = lastContentCheckTime[pkg] ?: 0L
+            if (now - last < CONTENT_DEBOUNCE_MS) return
+            lastContentCheckTime[pkg] = now
         }
 
-        // Debounce: check no more than once per 500ms per package
-        val lastBlock = lastBlockedTime[pkg] ?: 0L
-        if (now - lastBlock < BLOCK_DEBOUNCE_MS) return
+        val isBrowserContentEvent =
+            eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED && pkg in BROWSER_URL_VIEW_IDS
 
         serviceScope.launch(Dispatchers.Main) {
-            // Check focus mode
-            if (focusModeActive && now < focusModeEndTime) {
+            // 1) Focus mode — global, with exemptions
+            if (focusModeActive && now < focusModeEndTime && pkg !in exemptPackages) {
                 val shouldBlock = if (focusModeIsWhitelist) {
                     pkg !in focusModeWhitelist
                 } else {
                     pkg in focusModeWhitelist
                 }
                 if (shouldBlock) {
-                    showBlockOverlay(pkg, "FOCUS")
-                    lastBlockedTime[pkg] = now
+                    showBlockOverlay(pkg, BlockType.FOCUS.name)
                     return@launch
                 }
             }
 
-            // Check standard block rules
-            if (pkg in blockedPackagesCache) {
-                if (isPackageCurrentlyBlocked(pkg)) {
-                    showBlockOverlay(pkg, getBlockReason(pkg))
-                    lastBlockedTime[pkg] = now
-                    return@launch
-                }
+            // 2) Block rules — per-package, plus global sleep-mode sentinel
+            val decision = evaluateRules(pkg, now)
+            if (decision != null) {
+                showBlockOverlay(pkg, decision.reason)
+                return@launch
             }
 
-            // Website blocking (only for known browsers)
-            if (pkg in BROWSER_URL_VIEW_IDS && eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
-                handleBrowserEvent(event, pkg)
+            // 3) Website blocking (only for known browsers)
+            if (isBrowserContentEvent) {
+                handleBrowserEvent(pkg)
             }
 
-            // In-app blocking
+            // 4) In-app blocking
             val lastInAppCheck = lastInAppCheckTime[pkg] ?: 0L
             if (now - lastInAppCheck > INAPP_CHECK_DEBOUNCE_MS) {
                 lastInAppCheckTime[pkg] = now
-                handleInAppBlock(event, pkg)
+                handleInAppBlock(pkg)
             }
         }
     }
 
-    private fun trackForegroundTime(newPkg: String, now: Long) {
-        currentForegroundPackage?.let { prevPkg ->
-            val elapsed = now - foregroundSince
-            if (elapsed > 0) {
-                usageAccumulator[prevPkg] = (usageAccumulator[prevPkg] ?: 0L) + elapsed
-            }
+    private suspend fun evaluateRules(pkg: String, now: Long): com.example.stayfree.domain.BlockDecision? {
+        val hasPackageRules = pkg in blockedPackagesCache
+        val sleepRulesExist = BlockRuleEvaluator.SLEEP_MODE_PACKAGE in blockedPackagesCache
+        val includeSleep = sleepRulesExist && pkg !in exemptPackages
+        if (!hasPackageRules && !includeSleep) return null
+
+        val rules = buildList {
+            if (hasPackageRules) addAll(blockingRepository.getActiveRulesForPackage(pkg))
+            if (includeSleep) addAll(blockingRepository.getActiveRulesForPackage(BlockRuleEvaluator.SLEEP_MODE_PACKAGE))
         }
-        currentForegroundPackage = newPkg
-        foregroundSince = now
-    }
+        if (rules.isEmpty()) return null
 
-    private suspend fun isPackageCurrentlyBlocked(pkg: String): Boolean {
-        val resetTime = prefs.dailyResetTimeMinutes.first()
-        val date = TimeUtils.getEffectiveDate(resetTime)
-        val rules = blockingRepository.getActiveRulesForPackage(pkg)
+        val schedules = rules
+            .filter { it.blockType == BlockType.SCHEDULED.name || it.blockType == BlockType.SLEEP.name }
+            .associate { it.id to blockingRepository.getSchedulesForRule(it.id) }
 
-        for (rule in rules) {
-            when (rule.blockType) {
-                "BLOCK_NOW" -> return true
-                "SCHEDULED" -> {
-                    val schedules = blockingRepository.getSchedulesForRule(rule.id)
-                    if (schedules.any {
-                            TimeUtils.isInScheduleWindow(it.daysOfWeek, it.startTimeMinutes, it.endTimeMinutes)
-                        }) return true
-                }
-                "DAILY_LIMIT" -> {
-                    val limit = rule.dailyLimitMs ?: continue
-                    // Use accumulator + DB value
-                    val accMs = usageAccumulator[pkg] ?: 0L
-                    // We'll do a quick DB check here
-                    return accMs >= limit
-                }
-                "SESSION" -> {
-                    val limit = rule.sessionLimitMs ?: continue
-                    val sessionStart = foregroundSince
-                    if (currentForegroundPackage == pkg && (System.currentTimeMillis() - sessionStart) >= limit) {
-                        return true
-                    }
-                }
-                "SLEEP" -> {
-                    val schedules = blockingRepository.getSchedulesForRule(rule.id)
-                    if (schedules.any {
-                            TimeUtils.isInScheduleWindow(it.daysOfWeek, it.startTimeMinutes, it.endTimeMinutes)
-                        }) return true
-                }
-                else -> {}
-            }
-        }
-        return false
-    }
+        val sessionMs = if (currentForegroundPackage == pkg) now - foregroundSince else 0L
 
-    private suspend fun getBlockReason(pkg: String): String {
-        val rules = blockingRepository.getActiveRulesForPackage(pkg)
-        return rules.firstOrNull()?.blockType ?: "BLOCK_NOW"
+        val usageTodayMs = if (rules.any { it.blockType == BlockType.DAILY_LIMIT.name }) {
+            val resetTime = prefs.dailyResetTimeMinutes.first()
+            val date = TimeUtils.getEffectiveDate(resetTime)
+            usageRepository.getScreenTimeForPackageOnDate(pkg, date).first()
+        } else 0L
+
+        return BlockRuleEvaluator.evaluate(
+            rules = rules,
+            schedules = schedules,
+            usageTodayMs = usageTodayMs,
+            sessionMs = sessionMs,
+            nowMinutes = TimeUtils.currentTimeMinutes(),
+            day = TimeUtils.currentDayAbbreviation()
+        )
     }
 
     private fun showBlockOverlay(pkg: String, reason: String) {
+        if (!Settings.canDrawOverlays(this)) return
         val intent = Intent(this, BlockOverlayActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
@@ -193,10 +185,14 @@ class StayFreeAccessibilityService : AccessibilityService() {
             putExtra(BlockOverlayActivity.EXTRA_PACKAGE_NAME, pkg)
             putExtra(BlockOverlayActivity.EXTRA_BLOCK_REASON, reason)
         }
-        startActivity(intent)
+        try {
+            startActivity(intent)
+        } catch (e: Exception) {
+            // Activity start can be rejected (background restrictions, transient states).
+        }
     }
 
-    private fun handleBrowserEvent(event: AccessibilityEvent, pkg: String) {
+    private fun handleBrowserEvent(pkg: String) {
         urlDebounceJob?.cancel()
         urlDebounceJob = serviceScope.launch {
             delay(URL_DEBOUNCE_MS)
@@ -249,7 +245,7 @@ class StayFreeAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun handleInAppBlock(event: AccessibilityEvent, pkg: String) {
+    private fun handleInAppBlock(pkg: String) {
         serviceScope.launch {
             val targets = inAppBlockRepository.getActiveForPackage(pkg)
             if (targets.isEmpty()) return@launch
@@ -319,48 +315,43 @@ class StayFreeAccessibilityService : AccessibilityService() {
         }
     }
 
+    private fun computeExemptPackages(): Set<String> {
+        val set = mutableSetOf(packageName)
+        set.addAll(STATIC_EXEMPT)
+        val home = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+        packageManager.resolveActivity(home, PackageManager.MATCH_DEFAULT_ONLY)
+            ?.activityInfo?.packageName?.let { set.add(it) }
+        val dial = Intent(Intent.ACTION_DIAL)
+        packageManager.resolveActivity(dial, PackageManager.MATCH_DEFAULT_ONLY)
+            ?.activityInfo?.packageName?.let { set.add(it) }
+        return set
+    }
+
     private fun startCacheRefresh() {
         serviceScope.launch {
             while (isActive) {
                 try {
                     val rules = blockingRepository.getActiveRulesOnce()
-                    val packages = rules.map { it.packageName }.toSet()
-                    blockedPackagesCache.clear()
-                    blockedPackagesCache.addAll(packages)
+                    blockedPackagesCache = rules.map { it.packageName }.toSet()
+                    exemptPackages = computeExemptPackages()
                 } catch (e: Exception) { /* continue */ }
                 delay(CACHE_REFRESH_INTERVAL_MS)
             }
         }
     }
 
-    private fun startUsagePersist() {
-        serviceScope.launch {
-            while (isActive) {
-                delay(USAGE_PERSIST_INTERVAL_MS)
-                try {
-                    val resetTime = prefs.dailyResetTimeMinutes.first()
-                    val date = TimeUtils.getEffectiveDate(resetTime)
-                    // Flush current foreground package
-                    currentForegroundPackage?.let { pkg ->
-                        val now = System.currentTimeMillis()
-                        val elapsed = now - foregroundSince
-                        usageAccumulator[pkg] = (usageAccumulator[pkg] ?: 0L) + elapsed
-                        foregroundSince = now
-                    }
-                    // Persist all accumulated time to DB
-                    for ((pkg, ms) in usageAccumulator) {
-                        if (ms > 0) {
-                            usageRepository.updateAccumulatedTime(pkg, date, ms)
-                        }
-                    }
-                    usageAccumulator.clear()
-                } catch (e: Exception) { /* continue */ }
-            }
-        }
-    }
-
     private fun collectFocusModeState() {
         serviceScope.launch {
+            // Seed from persisted state so an active focus session survives process restarts.
+            try {
+                val active = prefs.focusActive.first()
+                val endTime = prefs.focusEndTime.first()
+                val isWhitelist = prefs.focusIsWhitelist.first()
+                if (active && endTime > System.currentTimeMillis() && !FocusModeState.state.value.active) {
+                    FocusModeState.update(true, endTime, emptySet(), isWhitelist)
+                }
+            } catch (e: Exception) { /* fall through to live state */ }
+
             FocusModeState.state.collect { snapshot ->
                 focusModeActive = snapshot.active
                 focusModeEndTime = snapshot.endTime
@@ -368,13 +359,6 @@ class StayFreeAccessibilityService : AccessibilityService() {
                 focusModeIsWhitelist = snapshot.isWhitelist
             }
         }
-    }
-
-    fun updateFocusMode(active: Boolean, endTime: Long, whitelist: Set<String>, isWhitelist: Boolean) {
-        focusModeActive = active
-        focusModeEndTime = endTime
-        focusModeWhitelist = whitelist
-        focusModeIsWhitelist = isWhitelist
     }
 
     override fun onInterrupt() {}
