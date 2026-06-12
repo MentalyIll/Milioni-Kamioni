@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/dashboardFragment">
+
+    <fragment
+        android:id="@+id/dashboardFragment"
+        android:name="com.example.stayfree.ui.dashboard.DashboardFragment"
+        android:label="@string/nav_dashboard" />
+
+    <fragment
+        android:id="@+id/statsFragment"
+        android:name="com.example.stayfree.ui.stats.StatsFragment"
+        android:label="@string/nav_stats">
+        <action
+            android:id="@+id/action_stats_to_appDetail"
+            app:destination="@id/appDetailStatsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/appDetailStatsFragment"
+        android:name="com.example.stayfree.ui.stats.AppDetailStatsFragment"
+        android:label="App Detail">
+        <argument
+            android:name="packageName"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/blockingFragment"
+        android:name="com.example.stayfree.ui.blocking.BlockingFragment"
+        android:label="@string/nav_blocking">
+        <action
+            android:id="@+id/action_blocking_to_addRule"
+            app:destination="@id/addBlockRuleFragment" />
+        <action
+            android:id="@+id/action_blocking_to_focusMode"
+            app:destination="@id/focusModeFragment" />
+        <action
+            android:id="@+id/action_blocking_to_sleepMode"
+            app:destination="@id/sleepModeFragment" />
+        <action
+            android:id="@+id/action_blocking_to_website"
+            app:destination="@id/websiteBlockFragment" />
+        <action
+            android:id="@+id/action_blocking_to_inapp"
+            app:destination="@id/inAppBlockFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/addBlockRuleFragment"
+        android:name="com.example.stayfree.ui.blocking.AddBlockRuleFragment"
+        android:label="Add Block Rule">
+        <argument
+            android:name="ruleId"
+            app:argType="long"
+            android:defaultValue="-1" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/focusModeFragment"
+        android:name="com.example.stayfree.ui.blocking.FocusModeFragment"
+        android:label="Focus Mode" />
+
+    <fragment
+        android:id="@+id/sleepModeFragment"
+        android:name="com.example.stayfree.ui.blocking.SleepModeFragment"
+        android:label="Sleep Mode" />
+
+    <fragment
+        android:id="@+id/websiteBlockFragment"
+        android:name="com.example.stayfree.ui.website.WebsiteBlockFragment"
+        android:label="Website Blocking" />
+
+    <fragment
+        android:id="@+id/inAppBlockFragment"
+        android:name="com.example.stayfree.ui.inapp.InAppBlockFragment"
+        android:label="In-App Blocking" />
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.example.stayfree.ui.settings.SettingsFragment"
+        android:label="@string/nav_settings">
+        <action
+            android:id="@+id/action_settings_to_pin"
+            app:destination="@id/pinSetupFragment" />
+        <action
+            android:id="@+id/action_settings_to_resetTime"
+            app:destination="@id/resetTimeFragment" />
+        <action
+            android:id="@+id/action_settings_to_auth"
+            app:destination="@id/authFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/authFragment"
+        android:name="com.example.stayfree.ui.auth.AuthFragment"
+        android:label="Sign In" />
+
+    <fragment
+        android:id="@+id/pinSetupFragment"
+        android:name="com.example.stayfree.ui.settings.PinSetupFragment"
+        android:label="PIN Setup" />
+
+    <fragment
+        android:id="@+id/resetTimeFragment"
+        android:name="com.example.stayfree.ui.settings.ResetTimeFragment"
+        android:label="Daily Reset Time" />
+
+</navigation>

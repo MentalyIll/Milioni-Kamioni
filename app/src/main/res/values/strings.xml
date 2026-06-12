@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">StayFree</string>
+
+    <!-- Navigation -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_stats">Stats</string>
+    <string name="nav_blocking">Blocking</string>
+    <string name="nav_settings">Settings</string>
+
+    <!-- Accessibility Service -->
+    <string name="accessibility_service_label">StayFree Screen Monitor</string>
+    <string name="accessibility_service_description">StayFree uses the Accessibility Service to detect which app or website is currently open so it can enforce your blocking rules.</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_usage_title">Usage Access</string>
+    <string name="onboarding_usage_desc">StayFree needs permission to view your app usage statistics. This lets us show you exactly how much time you spend in each app.</string>
+    <string name="onboarding_accessibility_title">Accessibility Service</string>
+    <string name="onboarding_accessibility_desc">Enable StayFree in Accessibility Settings to allow it to detect your active app and enforce blocking rules.</string>
+    <string name="onboarding_overlay_title">Display Over Other Apps</string>
+    <string name="onboarding_overlay_desc">StayFree needs to draw over other apps to show the block screen when you try to open a blocked app.</string>
+    <string name="onboarding_notifications_title">Notifications</string>
+    <string name="onboarding_notifications_desc">Allow notifications so StayFree can alert you when you are approaching your daily limits.</string>
+    <string name="onboarding_battery_title">Battery Optimization</string>
+    <string name="onboarding_battery_desc">Exclude StayFree from battery optimization so it keeps tracking even when your screen is off.</string>
+
+    <!-- Buttons -->
+    <string name="btn_grant_permission">Grant Permission</string>
+    <string name="btn_next">Next</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_delete">Delete</string>
+    <string name="btn_go_back">Go Back</string>
+    <string name="btn_override">Override (PIN required)</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_total_screen_time">Total Screen Time</string>
+    <string name="dashboard_unlocks">Unlocks</string>
+    <string name="dashboard_active_blocks">Active Blocks</string>
+
+    <!-- Stats -->
+    <string name="stats_daily">Daily</string>
+    <string name="stats_weekly">Weekly</string>
+    <string name="stats_monthly">Monthly</string>
+
+    <!-- Blocking -->
+    <string name="block_type_now">Block Now</string>
+    <string name="block_type_schedule">Schedule</string>
+    <string name="block_type_daily_limit">Daily Limit</string>
+    <string name="block_type_session">Session Limit</string>
+
+    <!-- Block Overlay -->
+    <string name="overlay_title">This app is blocked</string>
+    <string name="overlay_by_schedule">Blocked by schedule</string>
+    <string name="overlay_daily_limit_reached">Daily limit reached</string>
+    <string name="overlay_focus_mode">Focus mode is active</string>
+    <string name="overlay_sleep_mode">Sleep mode is active</string>
+
+    <!-- In-App Block features -->
+    <string name="inapp_youtube_shorts">YouTube Shorts</string>
+    <string name="inapp_instagram_reels">Instagram Reels</string>
+    <string name="inapp_snapchat_spotlight">Snapchat Spotlight</string>
+    <string name="inapp_tiktok_foryou">TikTok For You</string>
+    <string name="inapp_facebook_reels">Facebook Reels</string>
+    <string name="inapp_twitter_trending">Twitter Trending</string>
+
+    <!-- Auth -->
+    <string name="auth_title">Sign In to StayFree</string>
+    <string name="auth_subtitle">Enable cross-device sync by signing in with your email.</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_login">Log In</string>
+    <string name="auth_register">Create Account</string>
+    <string name="auth_sign_in">Sign In</string>
+
+    <!-- Settings -->
+    <string name="settings_account">Account</string>
+    <string name="settings_security">Security</string>
+    <string name="settings_set_pin">Set PIN</string>
+    <string name="settings_change_pin">Change PIN</string>
+    <string name="settings_remove_pin">Remove PIN</string>
+    <string name="settings_daily_reset">Daily Reset Time</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_export">Export Data</string>
+    <string name="settings_import">Import Data</string>
+    <string name="settings_sync">Cross-Device Sync</string>
+</resources>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/dashboardFragment"
+        android:icon="@drawable/ic_dashboard"
+        android:title="@string/nav_dashboard" />
+
+    <item
+        android:id="@+id/statsFragment"
+        android:icon="@drawable/ic_stats"
+        android:title="@string/nav_stats" />
+
+    <item
+        android:id="@+id/blockingFragment"
+        android:icon="@drawable/ic_block"
+        android:title="@string/nav_blocking" />
+
+    <item
+        android:id="@+id/settingsFragment"
+        android:icon="@drawable/ic_settings"
+        android:title="@string/nav_settings" />
+
+</menu>

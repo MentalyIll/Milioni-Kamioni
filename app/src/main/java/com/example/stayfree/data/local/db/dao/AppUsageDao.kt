@@ -1,0 +1,51 @@
+package com.example.stayfree.data.local.db.dao
+
+import androidx.room.*
+import com.example.stayfree.data.local.entity.AppUsageEntity
+import kotlinx.coroutines.flow.Flow
+
+@Dao
+interface AppUsageDao {
+
+    @Query("SELECT * FROM app_usage WHERE date = :date ORDER BY totalTimeMs DESC")
+    fun getUsageForDate(date: String): Flow<List<AppUsageEntity>>
+
+    @Query("SELECT * FROM app_usage WHERE date = :date ORDER BY totalTimeMs DESC")
+    suspend fun getUsageForDateOnce(date: String): List<AppUsageEntity>
+
+    @Query("SELECT * FROM app_usage WHERE packageName = :pkg AND date = :date LIMIT 1")
+    suspend fun getUsageForPackageAndDate(pkg: String, date: String): AppUsageEntity?
+
+    @Query("SELECT * FROM app_usage WHERE packageName = :pkg AND date = :date LIMIT 1")
+    fun getUsageForPackageOnDate(pkg: String, date: String): Flow<AppUsageEntity?>
+
+    @Query("SELECT * FROM app_usage WHERE packageName = :pkg AND date >= :fromDate ORDER BY date DESC")
+    fun getUsageForPackage(pkg: String, fromDate: String): Flow<List<AppUsageEntity>>
+
+    @Query("SELECT * FROM app_usage WHERE date >= :fromDate ORDER BY date DESC")
+    fun getUsageFromDate(fromDate: String): Flow<List<AppUsageEntity>>
+
+    @Query("SELECT SUM(totalTimeMs) FROM app_usage WHERE date = :date")
+    fun getTotalScreenTimeForDate(date: String): Flow<Long?>
+
+    @Query("SELECT SUM(unlockCount) FROM app_usage WHERE date = :date")
+    fun getTotalUnlocksForDate(date: String): Flow<Int?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(entity: AppUsageEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertAll(entities: List<AppUsageEntity>)
+
+    @Query("UPDATE app_usage SET totalTimeMs = :totalTimeMs, lastUpdated = :lastUpdated WHERE packageName = :pkg AND date = :date")
+    suspend fun updateTotalTime(pkg: String, date: String, totalTimeMs: Long, lastUpdated: Long = System.currentTimeMillis())
+
+    @Query("UPDATE app_usage SET unlockCount = unlockCount + 1 WHERE packageName = :pkg AND date = :date")
+    suspend fun incrementUnlockCount(pkg: String, date: String)
+
+    @Query("UPDATE app_usage SET screenOnCount = screenOnCount + 1 WHERE date = :date")
+    suspend fun incrementScreenOnCount(date: String)
+
+    @Query("DELETE FROM app_usage WHERE date < :beforeDate")
+    suspend fun deleteOlderThan(beforeDate: String)
+}
