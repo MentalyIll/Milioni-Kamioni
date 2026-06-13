@@ -20,6 +20,12 @@ import kotlinx.coroutines.launch
 @AndroidEntryPoint
 class SettingsFragment : Fragment() {
 
+    companion object {
+        // TODO: replace with the hosted privacy policy URL before Play submission
+        // (see docs/PLAY_RELEASE_CHECKLIST.md).
+        private const val PRIVACY_POLICY_URL = "https://example.com/moremoney-privacy"
+    }
+
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
     private val viewModel: SettingsViewModel by viewModels()
@@ -38,6 +44,18 @@ class SettingsFragment : Fragment() {
 
         binding.btnResetTime.setOnClickListener {
             findNavController().navigate(R.id.action_settings_to_resetTime)
+        }
+
+        val versionName = requireContext().packageManager
+            .getPackageInfo(requireContext().packageName, 0).versionName
+        binding.tvVersion.text = getString(R.string.settings_version, versionName)
+
+        binding.btnPrivacyPolicy.setOnClickListener {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(PRIVACY_POLICY_URL)))
+            } catch (e: Exception) {
+                // No browser installed — nothing to do.
+            }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {

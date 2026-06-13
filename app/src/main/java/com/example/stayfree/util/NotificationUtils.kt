@@ -30,7 +30,7 @@ object NotificationUtils {
                         CHANNEL_FOREGROUND,
                         "Usage Tracking",
                         NotificationManager.IMPORTANCE_MIN
-                    ).apply { description = "StayFree is tracking your screen time" },
+                    ).apply { description = "MoreMoney is tracking your screen time" },
                     NotificationChannel(
                         CHANNEL_USAGE_ALERTS,
                         "Usage Alerts",
@@ -53,7 +53,7 @@ object NotificationUtils {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
         return NotificationCompat.Builder(context, CHANNEL_FOREGROUND)
-            .setContentTitle("StayFree")
+            .setContentTitle(context.getString(R.string.app_name))
             .setContentText("Tracking your screen time")
             .setSmallIcon(R.drawable.ic_notification)
             .setContentIntent(pendingIntent)
