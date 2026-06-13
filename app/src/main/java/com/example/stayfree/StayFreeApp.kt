@@ -8,6 +8,7 @@ import com.example.stayfree.data.local.preferences.AppPreferences
 import com.example.stayfree.data.repository.BlockingRepository
 import com.example.stayfree.service.TrackingScheduler
 import com.example.stayfree.util.NotificationUtils
+import com.example.stayfree.util.PinHasher
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +40,15 @@ class StayFreeApp : Application(), Configuration.Provider {
                 blockingRepository.deactivateRulesForUninstalledApps()
             } catch (e: Exception) {
                 // Non-critical cleanup; stale rules simply never match a foreground app.
+            }
+        }
+        applicationScope.launch {
+            // Migration from the unsalted SHA-256 PIN format (pre-release dev
+            // installs only): drop the PIN; the user sets it again in Settings.
+            val storedHash = prefs.pinHash.first()
+            if (storedHash != null && !PinHasher.isModernFormat(storedHash)) {
+                prefs.setPinHash(null)
+                prefs.setPinEnabled(false)
             }
         }
     }

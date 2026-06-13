@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Belt and braces: the app has no INTERNET permission, but if a future
+     change reintroduces networking, cleartext traffic stays forbidden. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

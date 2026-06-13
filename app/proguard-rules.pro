@@ -1,4 +1,4 @@
-# StayFree ProGuard rules
+# MoreMoney ProGuard rules
 
 # Keep Room entities
 -keep class com.example.stayfree.data.local.entity.** { *; }
@@ -7,13 +7,15 @@
 -keepclasseswithmembernames class * { @dagger.* <fields>; }
 -keep class dagger.hilt.** { *; }
 
-# Keep Firebase
--keep class com.google.firebase.** { *; }
-
-# Keep Retrofit
--keepattributes Signature
--keepattributes Exceptions
--keep class retrofit2.** { *; }
-
 # Keep MPAndroidChart
 -keep class com.github.mikephil.charting.** { *; }
+
+# Strip android.util.Log calls from release builds
+-assumenosideeffects class android.util.Log {
+    public static int v(...);
+    public static int d(...);
+    public static int i(...);
+    public static int w(...);
+    public static int e(...);
+    public static int wtf(...);
+}

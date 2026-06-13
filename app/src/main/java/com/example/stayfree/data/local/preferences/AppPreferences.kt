@@ -29,6 +29,7 @@ class AppPreferences @Inject constructor(
         val FOCUS_ACTIVE = booleanPreferencesKey("focus_active")
         val FOCUS_END_TIME = longPreferencesKey("focus_end_time")
         val FOCUS_IS_WHITELIST = booleanPreferencesKey("focus_is_whitelist")
+        val ACCESSIBILITY_DISCLOSURE_ACCEPTED = booleanPreferencesKey("accessibility_disclosure_accepted")
     }
 
     val dailyResetTimeMinutes: Flow<Int> = dataStore.data.map { it[DAILY_RESET_TIME_MINUTES] ?: 0 }
@@ -41,6 +42,8 @@ class AppPreferences @Inject constructor(
     val focusActive: Flow<Boolean> = dataStore.data.map { it[FOCUS_ACTIVE] ?: false }
     val focusEndTime: Flow<Long> = dataStore.data.map { it[FOCUS_END_TIME] ?: 0L }
     val focusIsWhitelist: Flow<Boolean> = dataStore.data.map { it[FOCUS_IS_WHITELIST] ?: true }
+    val accessibilityDisclosureAccepted: Flow<Boolean> =
+        dataStore.data.map { it[ACCESSIBILITY_DISCLOSURE_ACCEPTED] ?: false }
 
     suspend fun setDailyResetTime(minutes: Int) {
         dataStore.edit { it[DAILY_RESET_TIME_MINUTES] = minutes }
@@ -80,5 +83,9 @@ class AppPreferences @Inject constructor(
             it[FOCUS_END_TIME] = endTime
             it[FOCUS_IS_WHITELIST] = isWhitelist
         }
+    }
+
+    suspend fun setAccessibilityDisclosureAccepted(accepted: Boolean) {
+        dataStore.edit { it[ACCESSIBILITY_DISCLOSURE_ACCEPTED] = accepted }
     }
 }

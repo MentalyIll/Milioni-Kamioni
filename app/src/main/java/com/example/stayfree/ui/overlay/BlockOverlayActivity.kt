@@ -9,12 +9,12 @@ import com.example.stayfree.R
 import com.example.stayfree.data.local.preferences.AppPreferences
 import com.example.stayfree.databinding.ActivityBlockOverlayBinding
 import com.example.stayfree.databinding.DialogPinEntryBinding
+import com.example.stayfree.util.PinHasher
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.example.stayfree.util.AppInfoUtils
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
-import java.security.MessageDigest
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -112,7 +112,7 @@ class BlockOverlayActivity : AppCompatActivity() {
                 }
                 lifecycleScope.launch {
                     val storedHash = prefs.pinHash.first()
-                    if (storedHash != null && sha256(entered) == storedHash) {
+                    if (storedHash != null && PinHasher.verify(entered, storedHash)) {
                         finish()
                     } else {
                         Toast.makeText(this@BlockOverlayActivity, R.string.pin_incorrect, Toast.LENGTH_SHORT).show()
@@ -123,9 +123,4 @@ class BlockOverlayActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun sha256(input: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        val hash = digest.digest(input.toByteArray())
-        return hash.joinToString("") { "%02x".format(it) }
-    }
 }

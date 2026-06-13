@@ -17,6 +17,12 @@
     <string name="onboarding_usage_desc">StayFree needs permission to view your app usage statistics. This lets us show you exactly how much time you spend in each app.</string>
     <string name="onboarding_accessibility_title">Accessibility Service</string>
     <string name="onboarding_accessibility_desc">Enable StayFree in Accessibility Settings to allow it to detect your active app and enforce blocking rules.</string>
+
+    <!-- Prominent disclosure (Play policy) -->
+    <string name="disclosure_title">Accessibility access</string>
+    <string name="disclosure_message">This app uses Android\'s Accessibility Service to read which app is currently on screen, and — only when you block specific websites — the browser address bar.\n\nWhy: this is the only way to show the block screen the moment you open a blocked app or site.\n\nWhere the data goes: nowhere. Everything is processed and stored only on this device. The app has no internet access and never collects, shares, or sells this data.</string>
+    <string name="disclosure_accept">Accept and continue</string>
+    <string name="disclosure_decline">Not now</string>
     <string name="onboarding_overlay_title">Display Over Other Apps</string>
     <string name="onboarding_overlay_desc">StayFree needs to draw over other apps to show the block screen when you try to open a blocked app.</string>
     <string name="onboarding_notifications_title">Notifications</string>

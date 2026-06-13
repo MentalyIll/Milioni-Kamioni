@@ -10,11 +10,11 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.example.stayfree.data.local.preferences.AppPreferences
 import com.example.stayfree.databinding.FragmentPinSetupBinding
+import com.example.stayfree.util.PinHasher
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.security.MessageDigest
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -46,7 +46,7 @@ class PinSetupFragment : Fragment() {
                 binding.etPin.text?.clear()
             } else {
                 if (firstPin == pin) {
-                    val hash = sha256(pin)
+                    val hash = PinHasher.hash(pin)
                     CoroutineScope(Dispatchers.IO).launch {
                         prefs.setPinHash(hash)
                         prefs.setPinEnabled(true)
@@ -61,12 +61,6 @@ class PinSetupFragment : Fragment() {
                 }
             }
         }
-    }
-
-    private fun sha256(input: String): String {
-        val digest = MessageDigest.getInstance("SHA-256")
-        val hash = digest.digest(input.toByteArray())
-        return hash.joinToString("") { "%02x".format(it) }
     }
 
     override fun onDestroyView() {

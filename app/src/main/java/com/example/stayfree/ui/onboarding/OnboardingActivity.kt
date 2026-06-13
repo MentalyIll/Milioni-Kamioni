@@ -7,7 +7,9 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.example.stayfree.R
 import com.example.stayfree.data.local.preferences.AppPreferences
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.example.stayfree.databinding.ActivityOnboardingBinding
 import com.example.stayfree.service.TrackingScheduler
 import com.example.stayfree.ui.MainActivity
@@ -75,7 +77,7 @@ class OnboardingActivity : AppCompatActivity() {
             OnboardingStep.USAGE_ACCESS ->
                 startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
             OnboardingStep.ACCESSIBILITY ->
-                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                showAccessibilityDisclosure()
             OnboardingStep.OVERLAY ->
                 startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     Uri.parse("package:$packageName")))
@@ -88,6 +90,22 @@ class OnboardingActivity : AppCompatActivity() {
                 startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
                     Uri.parse("package:$packageName")))
         }
+    }
+
+    /**
+     * Play policy: AccessibilityService usage requires prominent disclosure
+     * (what is read, why, and where it goes) BEFORE the system settings open.
+     */
+    private fun showAccessibilityDisclosure() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.disclosure_title)
+            .setMessage(R.string.disclosure_message)
+            .setPositiveButton(R.string.disclosure_accept) { _, _ ->
+                lifecycleScope.launch { prefs.setAccessibilityDisclosureAccepted(true) }
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+            }
+            .setNegativeButton(R.string.disclosure_decline, null)
+            .show()
     }
 
     private fun advance() {
