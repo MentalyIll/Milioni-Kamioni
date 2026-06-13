@@ -21,42 +21,41 @@ class InAppBlockViewModel @Inject constructor(
 
     fun initDefaultTargets() {
         viewModelScope.launch {
+            // Detection targets the on-screen *player container* (matched by a
+            // substring of its resource-id) rather than the always-present bottom
+            // nav tab — otherwise the whole app would be blocked from its home
+            // screen. resource-ids are app-version specific, so each target lists
+            // several historical candidates via "anyOf".
             val defaults = listOf(
-                InAppBlockEntity(
-                    targetApp = "com.google.android.youtube",
-                    featureName = "YouTube Shorts",
-                    detectionStrategy = """{"type":"viewId","value":"com.google.android.youtube:id/reel_pivot_bar_container","fallback":{"type":"contentDescription","value":"Shorts"}}"""
-                ),
-                InAppBlockEntity(
-                    targetApp = "com.instagram.android",
-                    featureName = "Instagram Reels",
-                    detectionStrategy = """{"type":"contentDescription","value":"Reels","fallback":{"type":"viewId","value":"com.instagram.android:id/clips_tab"}}"""
-                ),
-                InAppBlockEntity(
-                    targetApp = "com.snapchat.android",
-                    featureName = "Snapchat Spotlight",
-                    detectionStrategy = """{"type":"contentDescription","value":"Spotlight"}"""
-                ),
-                InAppBlockEntity(
-                    targetApp = "com.zhiliaoapp.musically",
-                    featureName = "TikTok For You",
-                    detectionStrategy = """{"type":"contentDescription","value":"For You"}"""
-                ),
-                InAppBlockEntity(
-                    targetApp = "com.facebook.katana",
-                    featureName = "Facebook Reels",
-                    detectionStrategy = """{"type":"contentDescription","value":"Reels"}"""
-                ),
-                InAppBlockEntity(
-                    targetApp = "com.twitter.android",
-                    featureName = "Twitter Trending",
-                    detectionStrategy = """{"type":"contentDescription","value":"Trending","fallback":{"type":"viewId","value":"com.twitter.android:id/explore_tab"}}"""
-                )
+                "com.google.android.youtube" to ("YouTube Shorts" to
+                    """{"type":"anyOf","strategies":[{"type":"viewIdContains","value":"reel_recycler"},{"type":"viewIdContains","value":"reel_watch_pager"},{"type":"viewIdContains","value":"reel_player_page_container"},{"type":"viewIdContains","value":"shorts_video"}]}"""),
+                "com.instagram.android" to ("Instagram Reels" to
+                    """{"type":"anyOf","strategies":[{"type":"viewIdContains","value":"clips_viewer"},{"type":"viewIdContains","value":"reel_viewer"},{"type":"viewIdContains","value":"clips_tab_recycler"}]}"""),
+                "com.snapchat.android" to ("Snapchat Spotlight" to
+                    """{"type":"anyOf","strategies":[{"type":"viewIdContains","value":"spotlight"},{"type":"viewIdContains","value":"discover_feed"}]}"""),
+                "com.zhiliaoapp.musically" to ("TikTok For You" to
+                    """{"type":"anyOf","strategies":[{"type":"viewIdContains","value":"feed_recycler"},{"type":"viewIdContains","value":"video_feed"}]}"""),
+                "com.facebook.katana" to ("Facebook Reels" to
+                    """{"type":"viewIdContains","value":"reels"}"""),
+                "com.twitter.android" to ("Twitter Trending" to
+                    """{"type":"anyOf","strategies":[{"type":"viewIdContains","value":"explore"},{"type":"contentDescription","value":"Trending"}]}""")
             )
-            defaults.forEach { target ->
-                val existing = repository.getAll()
-                // Only insert if not already present (by targetApp + featureName)
-                repository.insert(target)
+
+            val existing = repository.getAllOnce()
+            for ((targetApp, feature) in defaults) {
+                val (featureName, strategy) = feature
+                val matches = existing.filter { it.targetApp == targetApp && it.featureName == featureName }
+                if (matches.isEmpty()) {
+                    repository.insert(
+                        InAppBlockEntity(targetApp = targetApp, featureName = featureName, detectionStrategy = strategy)
+                    )
+                } else {
+                    // Keep one row (prefer an already-enabled one), refresh its
+                    // detection strategy, and drop any duplicates from older builds.
+                    val keep = matches.firstOrNull { it.isActive } ?: matches.first()
+                    repository.updateStrategy(keep.id, strategy)
+                    matches.filter { it.id != keep.id }.forEach { repository.deleteById(it.id) }
+                }
             }
         }
     }

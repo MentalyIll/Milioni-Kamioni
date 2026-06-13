@@ -280,29 +280,49 @@ class StayFreeAccessibilityService : AccessibilityService() {
     }
 
     private fun matchNodeStrategy(rootNode: AccessibilityNodeInfo, strategy: JSONObject): Boolean {
-        val type = strategy.optString("type")
         val value = strategy.optString("value")
-        return when (type) {
+        return when (strategy.optString("type")) {
+            "anyOf" -> {
+                val arr = strategy.optJSONArray("strategies") ?: return false
+                (0 until arr.length()).any { i ->
+                    arr.optJSONObject(i)?.let { matchNodeStrategy(rootNode, it) } == true
+                }
+            }
+            // Exact, fully-qualified resource id (fast path).
             "viewId" -> {
                 val nodes = rootNode.findAccessibilityNodeInfosByViewId(value)
                 val found = nodes.isNotEmpty()
                 nodes.forEach { it.recycle() }
                 found
             }
-            "contentDescription" -> {
-                val nodes = rootNode.findAccessibilityNodeInfosByText(value)
-                val found = nodes.any { it.contentDescription?.toString()?.contains(value, ignoreCase = true) == true }
-                nodes.forEach { it.recycle() }
-                found
-            }
-            "text" -> {
-                val nodes = rootNode.findAccessibilityNodeInfosByText(value)
-                val found = nodes.isNotEmpty()
-                nodes.forEach { it.recycle() }
-                found
-            }
+            // Version-resilient: any node whose resource id contains the token.
+            "viewIdContains" ->
+                anyNodeMatches(rootNode) { it.viewIdResourceName?.contains(value, ignoreCase = true) == true }
+            "contentDescription" ->
+                anyNodeMatches(rootNode) { it.contentDescription?.toString()?.contains(value, ignoreCase = true) == true }
+            "text" ->
+                anyNodeMatches(rootNode) { it.text?.toString()?.contains(value, ignoreCase = true) == true }
             else -> false
         }
+    }
+
+    /** Depth-bounded DFS over the live node tree; recycles every node it visits except [root]. */
+    private fun anyNodeMatches(
+        root: AccessibilityNodeInfo,
+        depth: Int = 0,
+        predicate: (AccessibilityNodeInfo) -> Boolean
+    ): Boolean {
+        if (predicate(root)) return true
+        if (depth >= 80) return false
+        for (i in 0 until root.childCount) {
+            val child = root.getChild(i) ?: continue
+            try {
+                if (anyNodeMatches(child, depth + 1, predicate)) return true
+            } finally {
+                child.recycle()
+            }
+        }
+        return false
     }
 
     private fun extractDomain(url: String): String? {
