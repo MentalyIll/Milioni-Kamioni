@@ -92,6 +92,20 @@
                 android:resource="@xml/accessibility_service_config" />
         </service>
 
+        <!-- WorkManager: on-demand initialization (StayFreeApp implements
+             Configuration.Provider with the Hilt worker factory) — the default
+             initializer must be removed or workers won't be Hilt-injected. -->
+        <provider
+            android:name="androidx.startup.InitializationProvider"
+            android:authorities="${applicationId}.androidx-startup"
+            android:exported="false"
+            tools:node="merge">
+            <meta-data
+                android:name="androidx.work.WorkManagerInitializer"
+                android:value="androidx.startup"
+                tools:node="remove" />
+        </provider>
+
         <!-- Receivers -->
         <receiver
             android:name=".receiver.BootReceiver"

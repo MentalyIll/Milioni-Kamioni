@@ -3,6 +3,7 @@ package com.example.stayfree.ui.overlay
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
+import androidx.activity.addCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.stayfree.R
@@ -54,21 +55,15 @@ class BlockOverlayActivity : AppCompatActivity() {
         binding.btnOverride.setOnClickListener {
             showPinDialog()
         }
-    }
 
-    override fun onResume() {
-        super.onResume()
-        // Check if the blocked app is still foreground — if so, stay visible
-    }
-
-    @Deprecated("Deprecated in Java")
-    override fun onBackPressed() {
-        // Navigate to home instead of closing overlay
-        val homeIntent = Intent(Intent.ACTION_MAIN).apply {
-            addCategory(Intent.CATEGORY_HOME)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        // Back must not dismiss the block screen — send the user home instead.
+        onBackPressedDispatcher.addCallback(this) {
+            val homeIntent = Intent(Intent.ACTION_MAIN).apply {
+                addCategory(Intent.CATEGORY_HOME)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            startActivity(homeIntent)
         }
-        startActivity(homeIntent)
     }
 
     private fun setupUI() {
