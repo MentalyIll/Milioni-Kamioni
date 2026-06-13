@@ -10,19 +10,20 @@ object TimeUtils {
     /**
      * Returns the "effective date" string based on the user-configured daily reset time.
      * If the current time is before today's reset, we're still in "yesterday's day".
+     * [nowMs] is injectable for tests.
      */
-    fun getEffectiveDate(resetTimeMinutes: Int): String {
-        val now = System.currentTimeMillis()
+    fun getEffectiveDate(resetTimeMinutes: Int, nowMs: Long = System.currentTimeMillis()): String {
         val calendar = Calendar.getInstance()
+        calendar.timeInMillis = nowMs
         calendar.set(Calendar.HOUR_OF_DAY, resetTimeMinutes / 60)
         calendar.set(Calendar.MINUTE, resetTimeMinutes % 60)
         calendar.set(Calendar.SECOND, 0)
         calendar.set(Calendar.MILLISECOND, 0)
         val todayResetMs = calendar.timeInMillis
-        return if (now < todayResetMs) {
+        return if (nowMs < todayResetMs) {
             dateFormat.format(Date(todayResetMs - 86_400_000L))
         } else {
-            dateFormat.format(Date(now))
+            dateFormat.format(Date(nowMs))
         }
     }
 
@@ -72,11 +73,16 @@ object TimeUtils {
     /**
      * Checks whether the current time falls within a schedule window.
      * Handles overnight schedules (e.g. 23:00 – 07:00).
+     * [now] and [currentDay] are injectable for tests.
      */
-    fun isInScheduleWindow(daysOfWeek: String, startMinutes: Int, endMinutes: Int): Boolean {
+    fun isInScheduleWindow(
+        daysOfWeek: String,
+        startMinutes: Int,
+        endMinutes: Int,
+        now: Int = currentTimeMinutes(),
+        currentDay: String = currentDayAbbreviation()
+    ): Boolean {
         val days = daysOfWeek.split(",").map { it.trim() }
-        val currentDay = currentDayAbbreviation()
-        val now = currentTimeMinutes()
 
         if (startMinutes <= endMinutes) {
             // Same day window
