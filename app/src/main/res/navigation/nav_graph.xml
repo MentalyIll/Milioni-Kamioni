@@ -55,7 +55,7 @@
         <argument
             android:name="ruleId"
             app:argType="long"
-            android:defaultValue="-1" />
+            android:defaultValue="-1L" />
     </fragment>
 
     <fragment
