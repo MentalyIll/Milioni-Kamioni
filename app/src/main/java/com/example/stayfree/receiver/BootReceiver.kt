@@ -18,7 +18,8 @@ class BootReceiver : BroadcastReceiver() {
     @Inject lateinit var prefs: AppPreferences
 
     override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
+        // No super.onReceive: BroadcastReceiver.onReceive is abstract; the Hilt
+        // Gradle plugin's bytecode transform wires up injection for receivers.
         if (intent.action != Intent.ACTION_BOOT_COMPLETED &&
             intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
 

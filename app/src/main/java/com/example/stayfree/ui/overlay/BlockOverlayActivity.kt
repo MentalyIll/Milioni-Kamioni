@@ -10,7 +10,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.example.stayfree.R
 import com.example.stayfree.data.local.preferences.AppPreferences
-import com.example.stayfree.data.repository.BlockingRepository
 import com.example.stayfree.databinding.ActivityBlockOverlayBinding
 import com.example.stayfree.util.AppInfoUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -22,7 +21,6 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class BlockOverlayActivity : AppCompatActivity() {
 
-    @Inject lateinit var blockingRepository: BlockingRepository
     @Inject lateinit var prefs: AppPreferences
 
     private lateinit var binding: ActivityBlockOverlayBinding
@@ -86,17 +84,18 @@ class BlockOverlayActivity : AppCompatActivity() {
             "DAILY_LIMIT" -> getString(R.string.overlay_daily_limit_reached)
             "FOCUS" -> getString(R.string.overlay_focus_mode)
             "SLEEP" -> getString(R.string.overlay_sleep_mode)
-            "WEBSITE_BLOCKED", "WEBSITE_CAP_REACHED" -> "This website is blocked"
+            "WEBSITE_BLOCKED", "WEBSITE_CAP_REACHED" -> getString(R.string.overlay_website_blocked)
             else -> getString(R.string.overlay_title)
         }
 
         lifecycleScope.launch {
-            val pinEnabled = prefs.pinEnabled.first()
-            val rules = blockingRepository.getActiveRulesForPackage(packageName_)
-            val isPinLocked = rules.any { it.isPinLocked }
+            // Override is only offered when a PIN actually exists — otherwise the
+            // dialog would accept any input (no stored hash to compare against).
+            val hasPin = prefs.pinHash.first() != null
             binding.btnOverride.visibility =
-                if (!isPinLocked && !pinEnabled) android.view.View.GONE
-                else android.view.View.VISIBLE
+                if (hasPin) android.view.View.VISIBLE else android.view.View.GONE
+            binding.tvPinHint.visibility =
+                if (hasPin) android.view.View.GONE else android.view.View.VISIBLE
         }
     }
 
@@ -117,7 +116,7 @@ class BlockOverlayActivity : AppCompatActivity() {
                 }
                 lifecycleScope.launch {
                     val storedHash = prefs.pinHash.first()
-                    if (storedHash == null || sha256(entered) == storedHash) {
+                    if (storedHash != null && sha256(entered) == storedHash) {
                         finish()
                     } else {
                         Toast.makeText(this@BlockOverlayActivity, "Incorrect PIN", Toast.LENGTH_SHORT).show()

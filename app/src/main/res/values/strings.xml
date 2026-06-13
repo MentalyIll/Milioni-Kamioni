@@ -55,6 +55,8 @@
     <string name="overlay_daily_limit_reached">Daily limit reached</string>
     <string name="overlay_focus_mode">Focus mode is active</string>
     <string name="overlay_sleep_mode">Sleep mode is active</string>
+    <string name="overlay_website_blocked">This website is blocked</string>
+    <string name="overlay_set_pin_hint">Want an override option? Set a PIN in Settings first.</string>
 
     <!-- In-App Block features -->
     <string name="inapp_youtube_shorts">YouTube Shorts</string>
@@ -64,17 +66,7 @@
     <string name="inapp_facebook_reels">Facebook Reels</string>
     <string name="inapp_twitter_trending">Twitter Trending</string>
 
-    <!-- Auth -->
-    <string name="auth_title">Sign In to StayFree</string>
-    <string name="auth_subtitle">Enable cross-device sync by signing in with your email.</string>
-    <string name="auth_email">Email</string>
-    <string name="auth_password">Password</string>
-    <string name="auth_login">Log In</string>
-    <string name="auth_register">Create Account</string>
-    <string name="auth_sign_in">Sign In</string>
-
     <!-- Settings -->
-    <string name="settings_account">Account</string>
     <string name="settings_security">Security</string>
     <string name="settings_set_pin">Set PIN</string>
     <string name="settings_change_pin">Change PIN</string>
@@ -83,5 +75,4 @@
     <string name="settings_notifications">Notifications</string>
     <string name="settings_export">Export Data</string>
     <string name="settings_import">Import Data</string>
-    <string name="settings_sync">Cross-Device Sync</string>
 </resources>

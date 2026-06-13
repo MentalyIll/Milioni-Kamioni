@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.hilt.work.HiltWorkerFactory
 import androidx.work.Configuration
 import com.example.stayfree.data.local.preferences.AppPreferences
+import com.example.stayfree.data.repository.BlockingRepository
 import com.example.stayfree.service.TrackingScheduler
 import com.example.stayfree.util.NotificationUtils
 import dagger.hilt.android.HiltAndroidApp
@@ -19,6 +20,7 @@ class StayFreeApp : Application(), Configuration.Provider {
 
     @Inject lateinit var workerFactory: HiltWorkerFactory
     @Inject lateinit var prefs: AppPreferences
+    @Inject lateinit var blockingRepository: BlockingRepository
 
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
@@ -28,6 +30,13 @@ class StayFreeApp : Application(), Configuration.Provider {
         applicationScope.launch {
             val resetTime = prefs.dailyResetTimeMinutes.first()
             TrackingScheduler.ensureWorkScheduled(this@StayFreeApp, resetTime)
+        }
+        applicationScope.launch {
+            try {
+                blockingRepository.deactivateRulesForUninstalledApps()
+            } catch (e: Exception) {
+                // Non-critical cleanup; stale rules simply never match a foreground app.
+            }
         }
     }
 

@@ -16,4 +16,5 @@ interface BlockingRepository {
     suspend fun deleteRule(id: Long)
     suspend fun setRuleActive(id: Long, active: Boolean)
     suspend fun deactivateAllForPackage(pkg: String)
+    suspend fun deactivateRulesForUninstalledApps()
 }
