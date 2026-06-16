@@ -9,6 +9,7 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.stayfree.databinding.FragmentInAppBlockBinding
+import com.example.stayfree.domain.content.ContentSignatures
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -37,9 +38,24 @@ class InAppBlockFragment : Fragment() {
             this.adapter = this@InAppBlockFragment.adapter
         }
 
+        binding.switchIgReels.setOnCheckedChangeListener { btn, checked ->
+            if (btn.isPressed) viewModel.setContentEnabled(ContentSignatures.INSTAGRAM_REELS, checked)
+        }
+        binding.switchYtShorts.setOnCheckedChangeListener { btn, checked ->
+            if (btn.isPressed) viewModel.setContentEnabled(ContentSignatures.YOUTUBE_SHORTS, checked)
+        }
+
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.allTargets.collectLatest { list ->
-                adapter.submitList(list)
+            launch {
+                viewModel.allTargets.collectLatest { list ->
+                    adapter.submitList(list)
+                }
+            }
+            launch {
+                viewModel.contentBlockEnabledIds.collectLatest { enabled ->
+                    binding.switchIgReels.isChecked = ContentSignatures.INSTAGRAM_REELS in enabled
+                    binding.switchYtShorts.isChecked = ContentSignatures.YOUTUBE_SHORTS in enabled
+                }
             }
         }
     }

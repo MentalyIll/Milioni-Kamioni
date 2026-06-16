@@ -12,6 +12,7 @@ import com.example.stayfree.data.repository.InAppBlockRepository
 import com.example.stayfree.data.repository.UsageRepository
 import com.example.stayfree.data.repository.WebsiteBlockRepository
 import com.example.stayfree.domain.BlockRuleEvaluator
+import com.example.stayfree.domain.content.ContentSignatures
 import com.example.stayfree.domain.model.BlockType
 import com.example.stayfree.ui.blocking.FocusModeState
 import com.example.stayfree.ui.overlay.BlockOverlayActivity
@@ -44,6 +45,9 @@ class StayFreeAccessibilityService : AccessibilityService() {
     private val lastContentCheckTime = mutableMapOf<String, Long>()
     // Per-package last check for in-app blocks (debounce)
     private val lastInAppCheckTime = mutableMapOf<String, Long>()
+    // Per-content overlay blocking (Reels/Shorts)
+    private var contentOverlay: ContentBlockOverlayManager? = null
+    @Volatile private var enabledContentIds: Set<String> = emptySet()
     // Website time tracking
     private var currentBrowserDomain: String? = null
     private var domainStartTime: Long = 0L
@@ -81,8 +85,18 @@ class StayFreeAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         exemptPackages = computeExemptPackages()
+        contentOverlay = ContentBlockOverlayManager(this, prefs, serviceScope) {
+            performGlobalAction(GLOBAL_ACTION_BACK)
+        }
         startCacheRefresh()
         collectFocusModeState()
+        collectContentBlockState()
+    }
+
+    private fun collectContentBlockState() {
+        serviceScope.launch {
+            prefs.contentBlockEnabledIds.collect { enabledContentIds = it }
+        }
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
@@ -133,13 +147,39 @@ class StayFreeAccessibilityService : AccessibilityService() {
                 handleBrowserEvent(pkg)
             }
 
-            // 4) In-app blocking
+            // 4) In-app blocking (back-kick) — Snapchat/TikTok/Twitter etc.
             val lastInAppCheck = lastInAppCheckTime[pkg] ?: 0L
             if (now - lastInAppCheck > INAPP_CHECK_DEBOUNCE_MS) {
                 lastInAppCheckTime[pkg] = now
                 handleInAppBlock(pkg)
             }
+
+            // 5) Per-content overlay blocking (Reels/Shorts)
+            handleContentBlock(pkg)
         }
+    }
+
+    /**
+     * Floats the calm "content blocked" card over Reels/Shorts. Cheap-skips any
+     * package that isn't an enabled content target so the tree walk only runs
+     * inside Instagram/YouTube.
+     */
+    private fun handleContentBlock(pkg: String) {
+        val target = ContentSignatures.byPackage(pkg)
+        if (target == null || target.id !in enabledContentIds || contentOverlay?.isBypassed(target) == true) {
+            contentOverlay?.hide()
+            return
+        }
+        val root = rootInActiveWindow ?: return
+        val onContentSurface = try {
+            anyNodeMatches(root) { node ->
+                val id = node.viewIdResourceName ?: return@anyNodeMatches false
+                target.viewIdSignatures.any { id.contains(it, ignoreCase = true) }
+            }
+        } finally {
+            root.recycle()
+        }
+        if (onContentSurface) contentOverlay?.show(target) else contentOverlay?.hide()
     }
 
     private suspend fun evaluateRules(pkg: String, now: Long): com.example.stayfree.domain.BlockDecision? {
@@ -381,10 +421,14 @@ class StayFreeAccessibilityService : AccessibilityService() {
         }
     }
 
-    override fun onInterrupt() {}
+    override fun onInterrupt() {
+        contentOverlay?.destroy()
+    }
 
     override fun onDestroy() {
         super.onDestroy()
+        contentOverlay?.destroy()
+        contentOverlay = null
         serviceScope.cancel()
     }
 }

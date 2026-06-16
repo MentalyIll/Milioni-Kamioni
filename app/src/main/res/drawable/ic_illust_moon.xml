@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="96dp"
+    android:height="96dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- "Slow down" crescent moon -->
+    <path
+        android:fillColor="@color/primary"
+        android:pathData="M28,6C18.6,6 11,13.6 11,23s7.6,17 17,17c3.1,0 6,-0.8 8.5,-2.3C30.6,37.5 26,31.8 26,25c0,-6.8 4.6,-12.5 10.5,-12.7C34,8.8 31.1,6 28,6z" />
+    <path
+        android:fillColor="@color/secondary"
+        android:pathData="M37,30l1.2,2.6 2.8,0.3 -2.1,1.9 0.6,2.8 -2.5,-1.4 -2.5,1.4 0.6,-2.8 -2.1,-1.9 2.8,-0.3z" />
+</vector>

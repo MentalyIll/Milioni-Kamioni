@@ -30,6 +30,7 @@ class AppPreferences @Inject constructor(
         val FOCUS_END_TIME = longPreferencesKey("focus_end_time")
         val FOCUS_IS_WHITELIST = booleanPreferencesKey("focus_is_whitelist")
         val ACCESSIBILITY_DISCLOSURE_ACCEPTED = booleanPreferencesKey("accessibility_disclosure_accepted")
+        val CONTENT_BLOCK_ENABLED = stringSetPreferencesKey("content_block_enabled_ids")
     }
 
     val dailyResetTimeMinutes: Flow<Int> = dataStore.data.map { it[DAILY_RESET_TIME_MINUTES] ?: 0 }
@@ -44,6 +45,8 @@ class AppPreferences @Inject constructor(
     val focusIsWhitelist: Flow<Boolean> = dataStore.data.map { it[FOCUS_IS_WHITELIST] ?: true }
     val accessibilityDisclosureAccepted: Flow<Boolean> =
         dataStore.data.map { it[ACCESSIBILITY_DISCLOSURE_ACCEPTED] ?: false }
+    val contentBlockEnabledIds: Flow<Set<String>> =
+        dataStore.data.map { it[CONTENT_BLOCK_ENABLED] ?: emptySet() }
 
     suspend fun setDailyResetTime(minutes: Int) {
         dataStore.edit { it[DAILY_RESET_TIME_MINUTES] = minutes }
@@ -87,5 +90,12 @@ class AppPreferences @Inject constructor(
 
     suspend fun setAccessibilityDisclosureAccepted(accepted: Boolean) {
         dataStore.edit { it[ACCESSIBILITY_DISCLOSURE_ACCEPTED] = accepted }
+    }
+
+    suspend fun setContentBlockEnabled(id: String, enabled: Boolean) {
+        dataStore.edit { prefs ->
+            val current = prefs[CONTENT_BLOCK_ENABLED] ?: emptySet()
+            prefs[CONTENT_BLOCK_ENABLED] = if (enabled) current + id else current - id
+        }
     }
 }

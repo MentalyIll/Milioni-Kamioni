@@ -3,7 +3,9 @@ package com.example.stayfree.ui.inapp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.stayfree.data.local.entity.InAppBlockEntity
+import com.example.stayfree.data.local.preferences.AppPreferences
 import com.example.stayfree.data.repository.InAppBlockRepository
+import com.example.stayfree.domain.content.ContentSignatures
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -13,11 +15,19 @@ import javax.inject.Inject
 
 @HiltViewModel
 class InAppBlockViewModel @Inject constructor(
-    private val repository: InAppBlockRepository
+    private val repository: InAppBlockRepository,
+    private val prefs: AppPreferences
 ) : ViewModel() {
 
     val allTargets: StateFlow<List<InAppBlockEntity>> = repository.getAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val contentBlockEnabledIds: StateFlow<Set<String>> = prefs.contentBlockEnabledIds
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
+
+    fun setContentEnabled(id: String, enabled: Boolean) {
+        viewModelScope.launch { prefs.setContentBlockEnabled(id, enabled) }
+    }
 
     fun initDefaultTargets() {
         viewModelScope.launch {
@@ -26,11 +36,13 @@ class InAppBlockViewModel @Inject constructor(
             // nav tab — otherwise the whole app would be blocked from its home
             // screen. resource-ids are app-version specific, so each target lists
             // several historical candidates via "anyOf".
+            // Instagram Reels + YouTube Shorts moved to the overlay-based content
+            // blocker (Phase F); remove any leftover rows so they aren't double-blocked.
+            repository.getAllOnce()
+                .filter { it.targetApp in ContentSignatures.targetPackages }
+                .forEach { repository.deleteById(it.id) }
+
             val defaults = listOf(
-                "com.google.android.youtube" to ("YouTube Shorts" to
-                    """{"type":"anyOf","strategies":[{"type":"viewIdContains","value":"reel_recycler"},{"type":"viewIdContains","value":"reel_watch_pager"},{"type":"viewIdContains","value":"reel_player_page_container"},{"type":"viewIdContains","value":"shorts_video"}]}"""),
-                "com.instagram.android" to ("Instagram Reels" to
-                    """{"type":"anyOf","strategies":[{"type":"viewIdContains","value":"clips_viewer"},{"type":"viewIdContains","value":"reel_viewer"},{"type":"viewIdContains","value":"clips_tab_recycler"}]}"""),
                 "com.snapchat.android" to ("Snapchat Spotlight" to
                     """{"type":"anyOf","strategies":[{"type":"viewIdContains","value":"spotlight"},{"type":"viewIdContains","value":"discover_feed"}]}"""),
                 "com.zhiliaoapp.musically" to ("TikTok For You" to
