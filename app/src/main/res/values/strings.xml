@@ -83,6 +83,10 @@
     <string name="day_s">S</string>
 
     <!-- Focus mode -->
+    <string name="focus_header_title">Focus mode</string>
+    <string name="focus_header_tagline">Stay in the zone — only what you allow gets through.</string>
+    <string name="sleep_header_title">Sleep mode</string>
+    <string name="sleep_header_tagline">Wind down — distractions rest while you do.</string>
     <string name="focus_whitelist_mode">Whitelist mode (allow selected apps only)</string>
     <string name="focus_25_min">25 min</string>
     <string name="focus_45_min">45 min</string>

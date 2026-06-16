@@ -23,8 +23,35 @@
         <item name="colorOutline">@color/outline</item>
         <item name="colorError">@color/error</item>
         <item name="colorOnError">@color/on_error</item>
-        <item name="android:statusBarColor">@color/background</item>
+        <!-- Purple secondary accent mapped to the M3 tertiary role -->
+        <item name="colorTertiary">@color/accent_purple</item>
+        <item name="colorOnTertiary">@color/on_accent_purple</item>
+        <item name="colorTertiaryContainer">@color/accent_purple</item>
+        <item name="colorOnTertiaryContainer">@color/on_accent_purple</item>
+        <!-- Warm "comfy" surface behind floating white cards -->
+        <item name="android:colorBackground">@color/surface_container_low</item>
+        <item name="android:windowBackground">@color/surface_container_low</item>
+        <item name="android:statusBarColor">@color/surface_container_low</item>
         <item name="android:windowLightStatusBar">true</item>
+        <!-- Fully-rounded (pill) buttons everywhere -->
+        <item name="materialButtonStyle">@style/Widget.App.Button</item>
+    </style>
+
+    <style name="ShapeAppearance.App.Pill" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <style name="Widget.App.Button" parent="Widget.Material3.Button">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.App.Pill</item>
+    </style>
+
+    <style name="Widget.App.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.App.Pill</item>
+    </style>
+
+    <style name="Widget.App.Button.Tonal" parent="Widget.Material3.Button.TonalButton">
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.App.Pill</item>
     </style>
 
     <style name="Theme.StayFree" parent="Base.Theme.StayFree" />

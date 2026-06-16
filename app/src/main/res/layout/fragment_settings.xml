@@ -13,7 +13,7 @@
         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/settings_security" android:textStyle="bold" android:textSize="16sp" android:layout_marginBottom="@dimen/spacing_sm" />
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_set_pin"
-            style="@style/Widget.Material3.Button.OutlinedButton"
+            style="@style/Widget.App.Button.Outlined"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/settings_set_pin"
@@ -24,7 +24,7 @@
         <TextView android:id="@+id/tv_reset_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="14sp" android:layout_marginBottom="@dimen/spacing_sm" />
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_reset_time"
-            style="@style/Widget.Material3.Button.OutlinedButton"
+            style="@style/Widget.App.Button.Outlined"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/settings_change_reset_time"
@@ -35,7 +35,7 @@
         <TextView android:id="@+id/tv_version" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="14sp" android:layout_marginBottom="@dimen/spacing_sm" />
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_privacy_policy"
-            style="@style/Widget.Material3.Button.OutlinedButton"
+            style="@style/Widget.App.Button.Outlined"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/settings_privacy_policy"

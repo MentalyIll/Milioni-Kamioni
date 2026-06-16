@@ -18,7 +18,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_focus_mode"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.App.Button.Outlined"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -27,7 +27,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_sleep_mode"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.App.Button.Outlined"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -43,7 +43,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_website_blocking"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.App.Button.Outlined"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -52,7 +52,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_in_app_blocking"
-                style="@style/Widget.Material3.Button.OutlinedButton"
+                style="@style/Widget.App.Button.Outlined"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -70,6 +70,7 @@
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_block_rules"
+        android:layoutAnimation="@anim/layout_animation_slide_up"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
