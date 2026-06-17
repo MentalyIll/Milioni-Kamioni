@@ -68,6 +68,25 @@
     <string name="blocking_app_rules">App Block Rules</string>
     <string name="app_detail_block_this_app">Block This App</string>
 
+    <!-- Blocking screen detail -->
+    <string name="blocking_tools_title">Blocking tools</string>
+    <string name="blocking_focus_desc">Mute everything for a set time</string>
+    <string name="blocking_sleep_desc">Quiet hours every night</string>
+    <string name="blocking_websites_desc">Block sites in your browser</string>
+    <string name="blocking_in_app_desc">Reels, Shorts &amp; more</string>
+    <string name="blocking_rules_count">%1$d rule(s) • %2$d active</string>
+    <string name="blocking_rules_empty">No app limits yet</string>
+    <string name="blocking_rules_empty_desc">Tap + to set a daily limit, schedule, or instant block for an app.</string>
+    <string name="blocking_add_rule">Add block rule</string>
+
+    <!-- Settings detail -->
+    <string name="settings_pin_on">Protected — tap to change</string>
+    <string name="settings_pin_off">Off — tap to set a PIN</string>
+    <string name="settings_pin_subtitle">Require a PIN to bypass blocks</string>
+    <string name="settings_reset_subtitle">When your daily counters restart</string>
+    <string name="settings_privacy_subtitle">Everything stays on your device</string>
+    <string name="settings_app_tagline">Spend less. Live more.</string>
+
     <!-- Add rule -->
     <string name="add_rule_select_app">Select App</string>
     <string name="add_rule_block_type">Block Type</string>

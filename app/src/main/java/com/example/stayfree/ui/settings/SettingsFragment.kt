@@ -61,14 +61,14 @@ class SettingsFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             launch {
                 viewModel.pinEnabled.collectLatest { enabled ->
-                    binding.btnSetPin.text = if (enabled) "Change PIN" else "Set PIN"
+                    binding.tvPinSubtitle.setText(
+                        if (enabled) R.string.settings_pin_on else R.string.settings_pin_off
+                    )
                 }
             }
             launch {
                 viewModel.dailyResetTime.collectLatest { minutes ->
-                    val h = minutes / 60
-                    val m = minutes % 60
-                    binding.tvResetTime.text = "Daily reset: %02d:%02d".format(h, m)
+                    binding.tvResetTime.text = "%02d:%02d".format(minutes / 60, minutes % 60)
                 }
             }
         }

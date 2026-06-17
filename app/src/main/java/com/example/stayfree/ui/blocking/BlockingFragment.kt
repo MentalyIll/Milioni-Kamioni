@@ -63,6 +63,12 @@ class BlockingFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.allRules.collectLatest { rules ->
                 adapter.submitList(rules)
+                val active = rules.count { it.isActive }
+                binding.tvRulesCount.text =
+                    resources.getString(R.string.blocking_rules_count, rules.size, active)
+                val empty = rules.isEmpty()
+                binding.emptyState.visibility = if (empty) View.VISIBLE else View.GONE
+                binding.rvBlockRules.visibility = if (empty) View.GONE else View.VISIBLE
             }
         }
     }

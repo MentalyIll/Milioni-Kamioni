@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -9,37 +11,118 @@
         android:orientation="vertical"
         android:padding="@dimen/spacing_md">
 
-        <!-- Security -->
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/settings_security" android:textStyle="bold" android:textSize="16sp" android:layout_marginBottom="@dimen/spacing_sm" />
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_set_pin"
-            style="@style/Widget.App.Button.Outlined"
-            android:layout_width="wrap_content"
+        <!-- App header -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/settings_set_pin"
-            android:layout_marginBottom="@dimen/spacing_lg" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingVertical="@dimen/spacing_md"
+            android:layout_marginBottom="@dimen/spacing_sm">
 
-        <!-- Daily Reset -->
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/settings_daily_reset" android:textStyle="bold" android:textSize="16sp" android:layout_marginBottom="@dimen/spacing_sm" />
-        <TextView android:id="@+id/tv_reset_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="14sp" android:layout_marginBottom="@dimen/spacing_sm" />
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_reset_time"
-            style="@style/Widget.App.Button.Outlined"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_change_reset_time"
-            android:layout_marginBottom="@dimen/spacing_lg" />
+            <ImageView
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:src="@mipmap/ic_launcher"
+                android:layout_marginEnd="@dimen/spacing_md"
+                android:importantForAccessibility="no" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/app_name"
+                    android:textAppearance="?attr/textAppearanceHeadlineSmall"
+                    android:textColor="?attr/colorPrimary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/settings_app_tagline"
+                    android:textAppearance="?attr/textAppearanceBodyMedium"
+                    android:textColor="?attr/colorOnSurfaceVariant" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Security -->
+        <TextView style="@style/Settings.SectionHeader" android:text="@string/settings_security" />
+
+        <com.google.android.material.card.MaterialCardView style="@style/Settings.Card">
+            <LinearLayout
+                android:id="@+id/btn_set_pin"
+                style="@style/Settings.Row">
+
+                <ImageView style="@style/Settings.RowIcon" android:src="@drawable/ic_lock" app:tint="?attr/colorPrimary" />
+
+                <LinearLayout style="@style/Settings.RowText">
+                    <TextView style="@style/Settings.RowTitle" android:text="@string/settings_set_pin" />
+                    <TextView android:id="@+id/tv_pin_subtitle" style="@style/Settings.RowSubtitle" />
+                </LinearLayout>
+
+                <ImageView style="@style/Settings.RowChevron" android:src="@drawable/ic_chevron_right" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Daily reset -->
+        <TextView style="@style/Settings.SectionHeader" android:text="@string/settings_daily_reset" />
+
+        <com.google.android.material.card.MaterialCardView style="@style/Settings.Card">
+            <LinearLayout
+                android:id="@+id/btn_reset_time"
+                style="@style/Settings.Row">
+
+                <ImageView style="@style/Settings.RowIcon" android:src="@drawable/ic_clock" app:tint="?attr/colorPrimary" />
+
+                <LinearLayout style="@style/Settings.RowText">
+                    <TextView style="@style/Settings.RowTitle" android:text="@string/settings_daily_reset" />
+                    <TextView android:id="@+id/tv_reset_time" style="@style/Settings.RowSubtitle"
+                        android:text="@string/settings_reset_subtitle" />
+                </LinearLayout>
+
+                <ImageView style="@style/Settings.RowChevron" android:src="@drawable/ic_chevron_right" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- About -->
-        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/settings_about" android:textStyle="bold" android:textSize="16sp" android:layout_marginBottom="@dimen/spacing_sm" />
-        <TextView android:id="@+id/tv_version" android:layout_width="wrap_content" android:layout_height="wrap_content" android:textSize="14sp" android:layout_marginBottom="@dimen/spacing_sm" />
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_privacy_policy"
-            style="@style/Widget.App.Button.Outlined"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/settings_privacy_policy"
-            android:layout_marginBottom="@dimen/spacing_lg" />
+        <TextView style="@style/Settings.SectionHeader" android:text="@string/settings_about" />
+
+        <com.google.android.material.card.MaterialCardView style="@style/Settings.Card">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <LinearLayout style="@style/Settings.Row" android:clickable="false" android:focusable="false">
+                    <ImageView style="@style/Settings.RowIcon" android:src="@drawable/ic_info" app:tint="?attr/colorPrimary" />
+                    <LinearLayout style="@style/Settings.RowText">
+                        <TextView style="@style/Settings.RowTitle" android:text="@string/settings_about" />
+                        <TextView android:id="@+id/tv_version" style="@style/Settings.RowSubtitle" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginStart="56dp"
+                    android:background="?attr/colorSurfaceVariant" />
+
+                <LinearLayout
+                    android:id="@+id/btn_privacy_policy"
+                    style="@style/Settings.Row">
+                    <ImageView style="@style/Settings.RowIcon" android:src="@drawable/ic_shield" app:tint="?attr/colorPrimary" />
+                    <LinearLayout style="@style/Settings.RowText">
+                        <TextView style="@style/Settings.RowTitle" android:text="@string/settings_privacy_policy" />
+                        <TextView style="@style/Settings.RowSubtitle" android:text="@string/settings_privacy_subtitle" />
+                    </LinearLayout>
+                    <ImageView style="@style/Settings.RowChevron" android:src="@drawable/ic_chevron_right" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
-</ScrollView>
+</androidx.core.widget.NestedScrollView>
