@@ -27,26 +27,29 @@ class MainActivity : AppCompatActivity() {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
 
+        // Inflate synchronously in onCreate so the NavHostFragment's fragment
+        // transaction commits before the activity can ever reach
+        // onSaveInstanceState — doing it later from a coroutine risks
+        // "Can not perform this action after onSaveInstanceState".
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        val navHostFragment = supportFragmentManager
+            .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
+        binding.bottomNav.setupWithNavController(navHostFragment.navController)
+
+        // Keep the splash up (hiding the dashboard) until we've decided whether
+        // to route to onboarding instead.
         var routed = false
         splashScreen.setKeepOnScreenCondition { !routed }
 
         lifecycleScope.launch {
-            val onboardingComplete = prefs.onboardingComplete.first()
-            if (!onboardingComplete) {
-                routed = true
+            if (!prefs.onboardingComplete.first()) {
                 startActivity(Intent(this@MainActivity, OnboardingActivity::class.java))
                 finish()
                 return@launch
             }
-
             routed = true
-            binding = ActivityMainBinding.inflate(layoutInflater)
-            setContentView(binding.root)
-
-            val navHostFragment = supportFragmentManager
-                .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
-            binding.bottomNav.setupWithNavController(navHostFragment.navController)
-
             val resetTime = prefs.dailyResetTimeMinutes.first()
             TrackingScheduler.ensureWorkScheduled(this@MainActivity, resetTime)
             TrackingScheduler.ensureStarted(this@MainActivity)
