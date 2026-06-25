@@ -52,10 +52,11 @@ class StayFreeAccessibilityService : AccessibilityService() {
     @Volatile private var enabledContentIds: Set<String> = emptySet()
     private var lastContentBlockAt: Long = 0L
     // Becomes true once we've seen the host app in a NON-short-form state during
-    // this foreground session. We only block after that — so opening an app that
-    // restores directly into Shorts/Reels does NOT block on launch; only actively
-    // navigating into the short-form surface does. Reset on every app switch.
-    private var contentSurfaceArmed = false
+    // this foreground session. Combined with a grace window since the app entered
+    // the foreground, this keeps a cold launch that auto-restores Shorts/Reels
+    // (which can briefly flash the home feed) from blocking on open — only active
+    // navigation into the surface blocks. Reset on every app switch.
+    @Volatile private var contentSurfaceArmed = false
     // Website time tracking
     private var currentBrowserDomain: String? = null
     private var domainStartTime: Long = 0L
@@ -74,6 +75,9 @@ class StayFreeAccessibilityService : AccessibilityService() {
         private const val URL_DEBOUNCE_MS = 500L
         // Min gap between two interstitial launches (covers CONTENT_CHANGED bursts).
         private const val CONTENT_BLOCK_COOLDOWN_MS = 3_000L
+        // After a host app enters foreground, ignore short-form surfaces for this
+        // long — covers a cold launch auto-restoring Shorts/Reels (seen ≤3.5s).
+        private const val CONTENT_OPEN_GRACE_MS = 4_000L
 
         // Browser URL bar view IDs
         private val BROWSER_URL_VIEW_IDS = mapOf(
@@ -119,8 +123,7 @@ class StayFreeAccessibilityService : AccessibilityService() {
             if (currentForegroundPackage != pkg) {
                 currentForegroundPackage = pkg
                 foregroundSince = now
-                // Fresh app session — require seeing a non-short-form screen before
-                // we'll block (so launching straight into Shorts won't block).
+                // Fresh app session — disarm (and start the on-open grace window).
                 contentSurfaceArmed = false
             }
         } else if (eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
@@ -207,18 +210,19 @@ class StayFreeAccessibilityService : AccessibilityService() {
         }
 
         if (!onContentSurface) {
-            // Saw the host app NOT in short-form — arm blocking for when the user
-            // navigates into Shorts/Reels from here.
+            // Saw the host app NOT in short-form — arm for active navigation later.
             contentSurfaceArmed = true
             return
         }
-        // Short-form surface is up. Only block if we previously saw a non-short
-        // screen this session (active navigation), not on a launch that restores
-        // straight into Shorts/Reels.
+        // Short-form surface is up. Block only if (a) we previously saw a non-short
+        // screen this session, AND (b) we're past the on-open grace window — so a
+        // cold launch that auto-restores Shorts (optionally flashing the feed) does
+        // not block; only navigating into Shorts after the app settled does.
         if (!contentSurfaceArmed) return
+        if (now - foregroundSince < CONTENT_OPEN_GRACE_MS) return
 
         lastContentBlockAt = now
-        Log.d(TAG, "Content detected: ${target.displayName} in $pkg -> interstitial")
+        Log.d(TAG, "Content blocked: ${target.displayName} in $pkg -> interstitial")
 
         if (!Settings.canDrawOverlays(this)) {
             Log.w(TAG, "No overlay permission — cannot launch interstitial")
