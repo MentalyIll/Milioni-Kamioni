@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.provider.Settings
+import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import com.example.stayfree.data.local.preferences.AppPreferences
@@ -15,6 +16,7 @@ import com.example.stayfree.domain.BlockRuleEvaluator
 import com.example.stayfree.domain.content.ContentSignatures
 import com.example.stayfree.domain.model.BlockType
 import com.example.stayfree.ui.blocking.FocusModeState
+import com.example.stayfree.ui.content.ContentInterstitialActivity
 import com.example.stayfree.ui.overlay.BlockOverlayActivity
 import com.example.stayfree.util.TimeUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -45,9 +47,9 @@ class StayFreeAccessibilityService : AccessibilityService() {
     private val lastContentCheckTime = mutableMapOf<String, Long>()
     // Per-package last check for in-app blocks (debounce)
     private val lastInAppCheckTime = mutableMapOf<String, Long>()
-    // Per-content overlay blocking (Reels/Shorts)
-    private var contentOverlay: ContentBlockOverlayManager? = null
+    // Per-content blocking (Reels/Shorts): exit host app + show interstitial
     @Volatile private var enabledContentIds: Set<String> = emptySet()
+    private var lastContentBlockAt: Long = 0L
     // Website time tracking
     private var currentBrowserDomain: String? = null
     private var domainStartTime: Long = 0L
@@ -59,10 +61,13 @@ class StayFreeAccessibilityService : AccessibilityService() {
     @Volatile private var focusModeIsWhitelist = true // true=whitelist, false=blacklist
 
     companion object {
+        private const val TAG = "MoreMoneyA11y"
         private const val CONTENT_DEBOUNCE_MS = 500L
         private const val CACHE_REFRESH_INTERVAL_MS = 30_000L
         private const val INAPP_CHECK_DEBOUNCE_MS = 500L
         private const val URL_DEBOUNCE_MS = 500L
+        // Min gap between two interstitial launches (covers CONTENT_CHANGED bursts).
+        private const val CONTENT_BLOCK_COOLDOWN_MS = 3_000L
 
         // Browser URL bar view IDs
         private val BROWSER_URL_VIEW_IDS = mapOf(
@@ -85,9 +90,6 @@ class StayFreeAccessibilityService : AccessibilityService() {
     override fun onServiceConnected() {
         super.onServiceConnected()
         exemptPackages = computeExemptPackages()
-        contentOverlay = ContentBlockOverlayManager(this, prefs, serviceScope) {
-            performGlobalAction(GLOBAL_ACTION_BACK)
-        }
         startCacheRefresh()
         collectFocusModeState()
         collectContentBlockState()
@@ -160,16 +162,20 @@ class StayFreeAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Floats the calm "content blocked" card over Reels/Shorts. Cheap-skips any
-     * package that isn't an enabled content target so the tree walk only runs
-     * inside Instagram/YouTube.
+     * Per-content blocking (Reels/Shorts): the instant the short-form surface is
+     * detected we send the host app to the background and launch our full-screen
+     * interstitial. Cheap-skips any package that isn't an enabled content target
+     * so the tree walk only runs inside Instagram/YouTube.
      */
     private fun handleContentBlock(pkg: String) {
         val target = ContentSignatures.byPackage(pkg)
-        if (target == null || target.id !in enabledContentIds || contentOverlay?.isBypassed(target) == true) {
-            contentOverlay?.hide()
-            return
-        }
+        if (target == null || target.id !in enabledContentIds) return
+
+        // Cooldown so a burst of CONTENT_CHANGED events can't relaunch the
+        // interstitial repeatedly while the Short is still settling.
+        val now = System.currentTimeMillis()
+        if (now - lastContentBlockAt < CONTENT_BLOCK_COOLDOWN_MS) return
+
         val root = rootInActiveWindow ?: return
         val onContentSurface = try {
             anyNodeMatches(root) { node ->
@@ -179,7 +185,26 @@ class StayFreeAccessibilityService : AccessibilityService() {
         } finally {
             root.recycle()
         }
-        if (onContentSurface) contentOverlay?.show(target) else contentOverlay?.hide()
+
+        if (!onContentSurface) return
+        lastContentBlockAt = now
+        Log.d(TAG, "Content detected: ${target.displayName} in $pkg -> interstitial")
+
+        if (!Settings.canDrawOverlays(this)) {
+            Log.w(TAG, "No overlay permission — cannot launch interstitial")
+            return
+        }
+        // The full-screen interstitial is its own task (NEW_TASK|CLEAR_TASK), so
+        // launching it sends the host app to the background — that *is* the exit.
+        // We deliberately do NOT call GLOBAL_ACTION_HOME: HOME lands asynchronously
+        // and would race the launcher on top of us, and it triggers YouTube's
+        // auto-PiP (a floating Short). Dismissing the interstitial goes home, so
+        // the user never falls back into the Short.
+        try {
+            startActivity(ContentInterstitialActivity.newIntent(this, target.id, target.displayName))
+        } catch (e: Exception) {
+            Log.w(TAG, "Interstitial launch rejected: ${e.message}")
+        }
     }
 
     private suspend fun evaluateRules(pkg: String, now: Long): com.example.stayfree.domain.BlockDecision? {
@@ -422,13 +447,11 @@ class StayFreeAccessibilityService : AccessibilityService() {
     }
 
     override fun onInterrupt() {
-        contentOverlay?.destroy()
+        // No persistent UI to tear down — interstitial is a normal activity.
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        contentOverlay?.destroy()
-        contentOverlay = null
         serviceScope.cancel()
     }
 }

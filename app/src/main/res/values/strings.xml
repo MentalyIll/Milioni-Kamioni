@@ -146,6 +146,10 @@
     <string name="content_block_back">Back</string>
     <string name="content_block_need_more">I need 5 more minutes</string>
 
+    <!-- Content interstitial (shown after the host app is sent to background) -->
+    <string name="interstitial_placeholder">AD</string>
+    <string name="interstitial_close">Close</string>
+
     <!-- PIN -->
     <string name="pin_set_title">Set your PIN</string>
     <string name="btn_confirm">Confirm</string>

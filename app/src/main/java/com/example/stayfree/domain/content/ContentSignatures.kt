@@ -29,10 +29,15 @@ object ContentSignatures {
             id = YOUTUBE_SHORTS,
             displayName = "Shorts",
             packageName = "com.google.android.youtube",
+            // Verified against a live uiautomator dump of the Shorts player —
+            // the whole surface is full of reel_* ids; reel_watch_fragment_root
+            // is the single most specific "we are watching a Short" marker.
             viewIdSignatures = listOf(
+                "reel_watch_fragment_root",
                 "reel_recycler",
                 "reel_player_page_container",
-                "reel_watch_pager",
+                "reel_watch_player",
+                "reel_player_overlay",
                 "shorts"
             )
         )

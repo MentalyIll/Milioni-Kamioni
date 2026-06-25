@@ -66,6 +66,16 @@
             android:taskAffinity=""
             android:theme="@style/Theme.StayFree.Overlay" />
 
+        <!-- Content Interstitial — full-screen black AdMob-template surface shown
+             after the host app (YouTube/Instagram) is sent to the background. -->
+        <activity
+            android:name=".ui.content.ContentInterstitialActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:theme="@style/Theme.StayFree.Interstitial" />
+
         <!-- Foreground Service — specialUse: continuous on-device screen-time
              tracking; dataSync would get a 6h timeout + boot-launch ban on
              targetSdk 35 -->
