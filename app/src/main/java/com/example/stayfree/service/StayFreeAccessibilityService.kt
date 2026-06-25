@@ -78,6 +78,9 @@ class StayFreeAccessibilityService : AccessibilityService() {
         // After a host app enters foreground, ignore short-form surfaces for this
         // long — covers a cold launch auto-restoring Shorts/Reels (seen ≤3.5s).
         private const val CONTENT_OPEN_GRACE_MS = 4_000L
+        // Let GLOBAL_ACTION_BACK settle (host leaves the Shorts player) before we
+        // cover the screen with the interstitial.
+        private const val BACK_SETTLE_MS = 300L
 
         // Browser URL bar view IDs
         private val BROWSER_URL_VIEW_IDS = mapOf(
@@ -228,16 +231,25 @@ class StayFreeAccessibilityService : AccessibilityService() {
             Log.w(TAG, "No overlay permission — cannot launch interstitial")
             return
         }
-        // The full-screen interstitial is its own task (NEW_TASK|CLEAR_TASK), so
-        // launching it sends the host app to the background — that *is* the exit.
-        // We deliberately do NOT call GLOBAL_ACTION_HOME: HOME lands asynchronously
-        // and would race the launcher on top of us, and it triggers YouTube's
-        // auto-PiP (a floating Short). Dismissing the interstitial goes home, so
-        // the user never falls back into the Short.
-        try {
-            startActivity(ContentInterstitialActivity.newIntent(this, target.id, target.displayName))
-        } catch (e: Exception) {
-            Log.w(TAG, "Interstitial launch rejected: ${e.message}")
+        // First press Back — while the host app is still foreground — to leave the
+        // Shorts/Reels player. This makes the host save a NON-short screen as its
+        // last state, so clearing it from recents and reopening doesn't restore
+        // straight back into Shorts. Then, once Back has settled, show the
+        // full-screen interstitial over the host's normal screen. (We avoid
+        // GLOBAL_ACTION_HOME: it races the launcher on top of us and triggers
+        // YouTube's auto-PiP floating Short.)
+        performGlobalAction(GLOBAL_ACTION_BACK)
+        serviceScope.launch(Dispatchers.Main) {
+            delay(BACK_SETTLE_MS)
+            try {
+                startActivity(
+                    ContentInterstitialActivity.newIntent(
+                        this@StayFreeAccessibilityService, target.id, target.displayName
+                    )
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "Interstitial launch rejected: ${e.message}")
+            }
         }
     }
 
