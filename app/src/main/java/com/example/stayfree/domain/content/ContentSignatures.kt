@@ -24,7 +24,8 @@ object ContentSignatures {
                 "clips_viewer",
                 "clips_video_container",
                 "clips_tab"
-            )
+            ),
+            blockMode = ContentBlockMode.REWARD_UNLOCK
         ),
         ContentBlockTarget(
             id = INSTAGRAM_STORIES,
@@ -57,7 +58,8 @@ object ContentSignatures {
                 "reel_watch_player",
                 "reel_player_overlay",
                 "shorts"
-            )
+            ),
+            blockMode = ContentBlockMode.REWARD_UNLOCK
         )
     )
 

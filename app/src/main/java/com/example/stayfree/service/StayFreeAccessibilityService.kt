@@ -55,12 +55,6 @@ class StayFreeAccessibilityService : AccessibilityService() {
     // Epoch ms until which reward-mode content (e.g. Stories) is unlocked.
     @Volatile private var contentUnlockUntil: Long = 0L
     private var lastContentBlockAt: Long = 0L
-    // Becomes true once we've seen the host app in a NON-short-form state during
-    // this foreground session. Combined with a grace window since the app entered
-    // the foreground, this keeps a cold launch that auto-restores Shorts/Reels
-    // (which can briefly flash the home feed) from blocking on open — only active
-    // navigation into the surface blocks. Reset on every app switch.
-    @Volatile private var contentSurfaceArmed = false
     // Website time tracking
     private var currentBrowserDomain: String? = null
     private var domainStartTime: Long = 0L
@@ -132,9 +126,8 @@ class StayFreeAccessibilityService : AccessibilityService() {
             // New foreground window — reset session tracking on app switch
             if (currentForegroundPackage != pkg) {
                 currentForegroundPackage = pkg
+                // Fresh app session — restart the on-open grace window.
                 foregroundSince = now
-                // Fresh app session — disarm (and start the on-open grace window).
-                contentSurfaceArmed = false
             }
         } else if (eventType == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
             val last = lastContentCheckTime[pkg] ?: 0L
@@ -223,16 +216,13 @@ class StayFreeAccessibilityService : AccessibilityService() {
             root.recycle()
         }
 
-        if (matched == null) {
-            // Host app NOT on a blocked surface — arm for active navigation later.
-            contentSurfaceArmed = true
-            return
-        }
-        // A blocked surface is up. Act only if (a) we previously saw a non-blocked
-        // screen this session, AND (b) we're past the on-open grace window — so a
-        // cold launch that auto-restores the surface (optionally flashing the feed)
-        // does not fire; only navigating into it after the app settled does.
-        if (!contentSurfaceArmed) return
+        // Not on any blocked surface (incl. the feed, where the player view is
+        // pre-inflated but NOT visibleToUser) — nothing to do.
+        if (matched == null) return
+        // A blocked surface is genuinely on screen (visible + full-height). Wait out
+        // a short on-open grace so a cold launch's transient flash of the
+        // pre-inflated player doesn't fire; past that, block whenever the user is on
+        // the surface — including apps that restore straight into Reels/Shorts on open.
         if (now - foregroundSince < CONTENT_OPEN_GRACE_MS) return
 
         // Reward-mode surface (Stories) with an active unlock → let it through.
