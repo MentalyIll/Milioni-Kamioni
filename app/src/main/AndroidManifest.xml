@@ -76,6 +76,16 @@
             android:taskAffinity=""
             android:theme="@style/Theme.StayFree.Interstitial" />
 
+        <!-- Reward-unlock gate — shown over the host feed for reward-mode content
+             (Instagram Stories). Watch an ad to earn a short window of access. -->
+        <activity
+            android:name=".ui.content.RewardGateActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:theme="@style/Theme.StayFree.RewardGate" />
+
         <!-- Foreground Service — specialUse: continuous on-device screen-time
              tracking; dataSync would get a 6h timeout + boot-launch ban on
              targetSdk 35 -->

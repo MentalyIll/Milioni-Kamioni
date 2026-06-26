@@ -12,6 +12,7 @@ package com.example.stayfree.domain.content
 object ContentSignatures {
 
     const val INSTAGRAM_REELS = "instagram_reels"
+    const val INSTAGRAM_STORIES = "instagram_stories"
     const val YOUTUBE_SHORTS = "youtube_shorts"
 
     val ALL: List<ContentBlockTarget> = listOf(
@@ -24,6 +25,23 @@ object ContentSignatures {
                 "clips_video_container",
                 "clips_tab"
             )
+        ),
+        ContentBlockTarget(
+            id = INSTAGRAM_STORIES,
+            displayName = "Stories",
+            packageName = "com.instagram.android",
+            // Verified against a live story-viewer dump. Instagram's internal
+            // name for Stories is "reel" (the disappearing 24h kind), so the
+            // viewer is full of reel_viewer_* ids — distinct from the TikTok-style
+            // Reels (clips_*) and from YouTube Shorts (reel_watch_*), so the three
+            // never collide. reel_viewer_root is the single "we're in a Story" marker.
+            viewIdSignatures = listOf(
+                "reel_viewer_root",
+                "reel_viewer_media_container",
+                "reel_viewer_content_layout",
+                "reel_viewer_media_layout"
+            ),
+            blockMode = ContentBlockMode.REWARD_UNLOCK
         ),
         ContentBlockTarget(
             id = YOUTUBE_SHORTS,
@@ -49,4 +67,8 @@ object ContentSignatures {
     fun byId(id: String): ContentBlockTarget? = ALL.firstOrNull { it.id == id }
 
     fun byPackage(pkg: String): ContentBlockTarget? = ALL.firstOrNull { it.packageName == pkg }
+
+    /** All targets for a package — a host app can expose several surfaces
+     *  (e.g. Instagram has both Reels and Stories). */
+    fun allByPackage(pkg: String): List<ContentBlockTarget> = ALL.filter { it.packageName == pkg }
 }

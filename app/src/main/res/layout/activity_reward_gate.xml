@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Reward-unlock gate shown over the host app's feed after the user enters a
+    reward-mode surface (Instagram Stories). Test-phase UI: a title, a short
+    message, an "AD" placeholder slot (where a real AdMob Rewarded ad shows
+    later), and two actions — watch ad (unlock 3 min) or exit. NO countdown.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/reward_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:paddingHorizontal="32dp">
+
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/white"
+            android:textSize="26sp"
+            android:textStyle="bold"
+            tools:text="Stories"
+            xmlns:tools="http://schemas.android.com/tools" />
+
+        <TextView
+            android:id="@+id/tv_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:text="@string/reward_gate_message"
+            android:textColor="#CCFFFFFF"
+            android:textSize="15sp" />
+
+        <!-- AdMob Rewarded ad slot (placeholder for the test phase). -->
+        <FrameLayout
+            android:id="@+id/ad_placeholder"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:layout_marginTop="28dp"
+            android:background="#22FFFFFF">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="@string/interstitial_placeholder"
+                android:textColor="#55FFFFFF"
+                android:textSize="14sp"
+                android:letterSpacing="0.15"
+                android:importantForAccessibility="no" />
+        </FrameLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_watch_ad"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="@string/reward_gate_watch" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_exit"
+            style="@style/Widget.App.Button.Outlined"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textColor="@android:color/white"
+            app:strokeColor="#66FFFFFF"
+            android:text="@string/reward_gate_exit" />
+    </LinearLayout>
+
+</FrameLayout>

@@ -140,6 +140,7 @@
     <string name="content_block_group_title">Block content (beta)</string>
     <string name="content_block_group_desc">Cover Reels and Shorts with a calm reminder instead of blocking the whole app. Detection depends on the app version and may occasionally need an update.</string>
     <string name="content_block_instagram_reels">Instagram Reels</string>
+    <string name="content_block_instagram_stories">Instagram Stories</string>
     <string name="content_block_youtube_shorts">YouTube Shorts</string>
     <string name="content_block_title">%1$s are blocked</string>
     <string name="content_block_subtitle">Take a breath — this is a limit you set for yourself.</string>
@@ -149,6 +150,13 @@
     <!-- Content interstitial (shown after the host app is sent to background) -->
     <string name="interstitial_placeholder">AD</string>
     <string name="interstitial_close">Close</string>
+
+    <!-- Reward-unlock gate (reward-mode content like Instagram Stories) -->
+    <string name="reward_gate_title">%1$s</string>
+    <string name="reward_gate_message">Watch a short ad to unlock 3 minutes — or step away.</string>
+    <string name="reward_gate_watch">Watch ad — unlock 3 min</string>
+    <string name="reward_gate_exit">Exit</string>
+    <string name="reward_gate_cap">Daily unlock limit reached. Try again tomorrow.</string>
 
     <!-- PIN -->
     <string name="pin_set_title">Set your PIN</string>

@@ -14,10 +14,12 @@ import com.example.stayfree.data.repository.InAppBlockRepository
 import com.example.stayfree.data.repository.UsageRepository
 import com.example.stayfree.data.repository.WebsiteBlockRepository
 import com.example.stayfree.domain.BlockRuleEvaluator
+import com.example.stayfree.domain.content.ContentBlockMode
 import com.example.stayfree.domain.content.ContentSignatures
 import com.example.stayfree.domain.model.BlockType
 import com.example.stayfree.ui.blocking.FocusModeState
 import com.example.stayfree.ui.content.ContentInterstitialActivity
+import com.example.stayfree.ui.content.RewardGateActivity
 import com.example.stayfree.ui.overlay.BlockOverlayActivity
 import com.example.stayfree.util.TimeUtils
 import dagger.hilt.android.AndroidEntryPoint
@@ -50,6 +52,8 @@ class StayFreeAccessibilityService : AccessibilityService() {
     private val lastInAppCheckTime = mutableMapOf<String, Long>()
     // Per-content blocking (Reels/Shorts): exit host app + show interstitial
     @Volatile private var enabledContentIds: Set<String> = emptySet()
+    // Epoch ms until which reward-mode content (e.g. Stories) is unlocked.
+    @Volatile private var contentUnlockUntil: Long = 0L
     private var lastContentBlockAt: Long = 0L
     // Becomes true once we've seen the host app in a NON-short-form state during
     // this foreground session. Combined with a grace window since the app entered
@@ -111,6 +115,9 @@ class StayFreeAccessibilityService : AccessibilityService() {
     private fun collectContentBlockState() {
         serviceScope.launch {
             prefs.contentBlockEnabledIds.collect { enabledContentIds = it }
+        }
+        serviceScope.launch {
+            prefs.contentUnlockUntil.collect { contentUnlockUntil = it }
         }
     }
 
@@ -177,78 +184,90 @@ class StayFreeAccessibilityService : AccessibilityService() {
     }
 
     /**
-     * Per-content blocking (Reels/Shorts): the instant the short-form surface is
-     * detected we send the host app to the background and launch our full-screen
-     * interstitial. Cheap-skips any package that isn't an enabled content target
-     * so the tree walk only runs inside Instagram/YouTube.
+     * Per-content blocking (Reels/Shorts/Stories): the instant a blocked surface
+     * is detected we press Back to leave it, then cover the host's feed with our
+     * own screen — a hard interstitial (Shorts/Reels) or a rewarded-unlock gate
+     * (Stories). Cheap-skips any package without an enabled content target so the
+     * tree walk only runs inside Instagram/YouTube. A host app can expose several
+     * surfaces (Instagram = Reels + Stories), so we test every enabled target.
      */
     private fun handleContentBlock(pkg: String) {
-        val target = ContentSignatures.byPackage(pkg)
-        if (target == null || target.id !in enabledContentIds) return
+        val targets = ContentSignatures.allByPackage(pkg).filter { it.id in enabledContentIds }
+        if (targets.isEmpty()) return
 
-        // Cooldown so a burst of CONTENT_CHANGED events can't relaunch the
-        // interstitial repeatedly while the Short is still settling.
+        // Cooldown so a burst of CONTENT_CHANGED events can't relaunch the block
+        // repeatedly while the surface is still settling.
         val now = System.currentTimeMillis()
         if (now - lastContentBlockAt < CONTENT_BLOCK_COOLDOWN_MS) return
 
         val root = rootInActiveWindow ?: return
         val screenH = resources.displayMetrics.heightPixels
         val bounds = Rect()
-        val onContentSurface = try {
-            anyNodeMatches(root) { node ->
-                val id = node.viewIdResourceName ?: return@anyNodeMatches false
-                if (target.viewIdSignatures.none { id.contains(it, ignoreCase = true) }) {
-                    return@anyNodeMatches false
+        val matched = try {
+            targets.firstOrNull { target ->
+                anyNodeMatches(root) { node ->
+                    val id = node.viewIdResourceName ?: return@anyNodeMatches false
+                    if (target.viewIdSignatures.none { id.contains(it, ignoreCase = true) }) {
+                        return@anyNodeMatches false
+                    }
+                    // The player view is pre-inflated in the host's view hierarchy,
+                    // so id presence alone fires on app open. Require it to be
+                    // actually presented: visible AND covering most of the screen
+                    // (the Shorts/Reels/Stories player is full-screen).
+                    if (!node.isVisibleToUser) return@anyNodeMatches false
+                    node.getBoundsInScreen(bounds)
+                    bounds.height() >= screenH * 0.6
                 }
-                // The player view is pre-inflated in the host's view hierarchy, so
-                // id presence alone fires on app open. Require it to be actually
-                // presented: visible to the user AND covering most of the screen
-                // (the Shorts/Reels player is full-screen).
-                if (!node.isVisibleToUser) return@anyNodeMatches false
-                node.getBoundsInScreen(bounds)
-                bounds.height() >= screenH * 0.6
             }
         } finally {
             root.recycle()
         }
 
-        if (!onContentSurface) {
-            // Saw the host app NOT in short-form — arm for active navigation later.
+        if (matched == null) {
+            // Host app NOT on a blocked surface — arm for active navigation later.
             contentSurfaceArmed = true
             return
         }
-        // Short-form surface is up. Block only if (a) we previously saw a non-short
+        // A blocked surface is up. Act only if (a) we previously saw a non-blocked
         // screen this session, AND (b) we're past the on-open grace window — so a
-        // cold launch that auto-restores Shorts (optionally flashing the feed) does
-        // not block; only navigating into Shorts after the app settled does.
+        // cold launch that auto-restores the surface (optionally flashing the feed)
+        // does not fire; only navigating into it after the app settled does.
         if (!contentSurfaceArmed) return
         if (now - foregroundSince < CONTENT_OPEN_GRACE_MS) return
 
+        // Reward-mode surface (Stories) with an active unlock → let it through.
+        if (matched.blockMode == ContentBlockMode.REWARD_UNLOCK && now < contentUnlockUntil) return
+
         lastContentBlockAt = now
-        Log.d(TAG, "Content blocked: ${target.displayName} in $pkg -> interstitial")
+        Log.d(TAG, "Content surface: ${matched.displayName} in $pkg (mode=${matched.blockMode})")
 
         if (!Settings.canDrawOverlays(this)) {
-            Log.w(TAG, "No overlay permission — cannot launch interstitial")
+            Log.w(TAG, "No overlay permission — cannot show block screen")
             return
         }
-        // First press Back — while the host app is still foreground — to leave the
-        // Shorts/Reels player. This makes the host save a NON-short screen as its
-        // last state, so clearing it from recents and reopening doesn't restore
-        // straight back into Shorts. Then, once Back has settled, show the
-        // full-screen interstitial over the host's normal screen. (We avoid
-        // GLOBAL_ACTION_HOME: it races the launcher on top of us and triggers
-        // YouTube's auto-PiP floating Short.)
+        // Press Back — while the host is still foreground — to leave the
+        // player/viewer. The host then saves a NON-blocked screen as its last
+        // state (so clearing recents + reopening doesn't restore straight back in)
+        // and the user lands on the feed behind our screen. Once Back settles, show
+        // the right screen. (We avoid GLOBAL_ACTION_HOME: it races the launcher on
+        // top of us and triggers YouTube's auto-PiP floating player.)
         performGlobalAction(GLOBAL_ACTION_BACK)
         serviceScope.launch(Dispatchers.Main) {
             delay(BACK_SETTLE_MS)
             try {
-                startActivity(
-                    ContentInterstitialActivity.newIntent(
-                        this@StayFreeAccessibilityService, target.id, target.displayName
-                    )
-                )
+                val intent = when (matched.blockMode) {
+                    ContentBlockMode.REWARD_UNLOCK ->
+                        RewardGateActivity.newIntent(
+                            this@StayFreeAccessibilityService, matched.id, matched.displayName
+                        )
+                    ContentBlockMode.HARD_BLOCK ->
+                        ContentInterstitialActivity.newIntent(
+                            this@StayFreeAccessibilityService, matched.id, matched.displayName
+                        )
+                }
+                startActivity(intent)
             } catch (e: Exception) {
-                Log.w(TAG, "Interstitial launch rejected: ${e.message}")
+                Log.w(TAG, "Block screen launch rejected: ${e.message}")
             }
         }
     }
